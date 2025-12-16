@@ -28,6 +28,11 @@ model Resume {
   education    Education[]
   experiences  Experience[]
   projects     Project[]
+
+  generatedResume String
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model PersonalInfo {
@@ -39,6 +44,9 @@ model PersonalInfo {
 
   resumeId String @unique
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Education {
@@ -52,6 +60,9 @@ model Education {
 
   resumeId String
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Experience {
@@ -65,6 +76,9 @@ model Experience {
 
   resumeId String
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Skills {
@@ -75,6 +89,9 @@ model Skills {
 
   resumeId String @unique
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model Project {
@@ -84,4 +101,7 @@ model Project {
 
   resumeId String
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
