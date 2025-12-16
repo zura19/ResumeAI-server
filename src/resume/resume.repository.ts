@@ -11,6 +11,7 @@ export class ResumeRepository {
 
     const resume = await this.db.resume.create({
       data: {
+        type: body.type,
         generatedResume: generated || '',
         personalInfo: {
           create: {

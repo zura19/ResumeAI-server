@@ -29,6 +29,7 @@ model Resume {
   experiences  Experience[]
   projects     Project[]
 
+  type            ResumeType @default(modern)
   generatedResume String
 
   updatedAt DateTime @updatedAt
@@ -104,4 +105,9 @@ model Project {
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+enum ResumeType {
+  classic
+  modern
 }

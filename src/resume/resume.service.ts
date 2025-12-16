@@ -29,7 +29,7 @@ export class ResumeService {
       }
       // console.log(paresd);
 
-      return { success: true, resume: res };
+      return { success: true, id: resume.id };
     } catch (error) {
       console.log(error);
       return {

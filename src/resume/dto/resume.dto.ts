@@ -1,12 +1,13 @@
 // dto/create-resume.dto.ts
 import { Type } from 'class-transformer';
-import { IsArray, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, ValidateNested } from 'class-validator';
 
 import { PersonalInfoDto } from './personal-info.dto';
 import { SkillsDto } from './skills.dto';
 import { EducationDto } from './education.dto';
 import { ExperienceDto } from './experience.dto';
 import { ProjectDto } from './project.dto';
+import { ResumeType } from '@prisma/client';
 
 export class CreateResumeDto {
   @ValidateNested()
@@ -31,6 +32,10 @@ export class CreateResumeDto {
   @ValidateNested({ each: true })
   @Type(() => ProjectDto)
   projects: ProjectDto[];
+
+  @IsEnum(ResumeType)
+  @IsNotEmpty()
+  type: ResumeType;
 }
 
 // {
