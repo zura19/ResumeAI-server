@@ -110,4 +110,6 @@ model Project {
 enum ResumeType {
   classic
   modern
+  creative
+  executive
 }
