@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
 import { CreateResumeDto } from 'src/resume/dto/resume.dto';
 import { AiRepository } from './ai.repository';
+import { GeneratedResumeDto } from 'src/resume/dto/generated-resume/generated-resume.dto';
 
 @Injectable()
 export class AiService {
@@ -48,6 +49,30 @@ export class AiService {
     try {
       const prompt = this.AiRepo.buildResumePrompt(resumeData);
 
+      const response = await this.ai.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: 'You are an expert resume writer' },
+          { role: 'user', content: prompt },
+        ],
+      });
+
+      console.log(response);
+
+      return response.choices[0].message.content;
+    } catch (error) {
+      console.error('Error communicating with AI:', error);
+      throw new BadRequestException(
+        error.message || 'Failed to get response from AI service',
+      );
+    }
+  }
+
+  async generateSummary(
+    dataForSummary: GeneratedResumeDto,
+  ): Promise<string | null> {
+    try {
+      const prompt = this.AiRepo.buildSummaryPrompt(dataForSummary);
       const response = await this.ai.chat.completions.create({
         model: 'llama-3.1-8b-instant',
         messages: [

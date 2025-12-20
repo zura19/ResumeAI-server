@@ -4,6 +4,7 @@ import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { ResumeRepository } from './resume.repository';
 import { AiService } from 'src/ai/ai.service';
+import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto';
 
 @Injectable()
 export class ResumeService {
@@ -48,6 +49,48 @@ export class ResumeService {
       }
 
       return { success: true, data: resume };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async updateResume(id: string, body: GeneratedResumeDto) {
+    try {
+      const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
+
+      if (!existingResume) {
+        throw new NotFoundException(`Resume with id: ${id} not found.`);
+      }
+
+      const updatedResume = await this.resumeRepository.updateGeneratedResume(
+        id,
+        JSON.stringify(body),
+      );
+
+      return { success: true, data: updatedResume };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async updateResumeSummary(id: string, body: GeneratedResumeDto) {
+    try {
+      const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
+      if (!existingResume) {
+        throw new NotFoundException(`Resume with id: ${id} not found.`);
+      }
+
+      // const summary = 'kargi summary';
+
+      const summary = await this.aiService.generateSummary(body);
+
+      // const updatedResume = await this.resumeRepository.updateGeneratedResume(
+      //   id,
+      //   JSON.stringify({ ...body, summary }),
+      // );
+      return { success: true, data: { summary } };
     } catch (error) {
       console.log(error);
       throw error;

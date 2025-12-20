@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateResumeDto } from '../resume/dto/resume.dto';
+import { GeneratedResumeDto } from 'src/resume/dto/generated-resume/generated-resume.dto';
 
 @Injectable()
 export class AiRepository {
@@ -56,6 +57,29 @@ WHAT I WANT:
 - MINIMUM 3 And MAXIMUM 5 Project features
 - Recognize country code form number and ADD it to phone
 - Return ONLY valid JSON
+
+
+
+USER DATA:
+${JSON.stringify(data, null, 2)}
+`;
+  }
+
+  buildSummaryPrompt(data: GeneratedResumeDto): string {
+    return `
+You are a professional resume writer.
+
+Using the information below, generate a professional summary. There might be summary present already, but you need to improve it.
+
+RULES:
+- Do NOT include markdown
+- Do NOT include explanations
+- Do NOT invent experience
+
+WHAT I WANT:
+- Return ONLY valid summary text
+- MINIMUM 200 words
+- Make it professional and concise
 
 
 

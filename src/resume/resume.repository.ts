@@ -84,4 +84,11 @@ export class ResumeRepository {
       // },
     });
   }
+
+  async updateGeneratedResume(id: string, generatedJSON: string) {
+    return this.db.resume.update({
+      where: { id },
+      data: { generatedResume: generatedJSON },
+    });
+  }
 }
