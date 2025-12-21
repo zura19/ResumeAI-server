@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateResumeDto } from '../resume/dto/resume.dto';
 import { GeneratedResumeDto } from 'src/resume/dto/generated-resume/generated-resume.dto';
+import { GenerateFeautureDto } from 'src/resume/dto/with-ai/generate-feature.dto';
+import { GenerateResponsibilitieDto } from 'src/resume/dto/with-ai/generate-responsibilitie.dto';
 
 @Injectable()
 export class AiRepository {
@@ -85,6 +87,53 @@ WHAT I WANT:
 
 USER DATA:
 ${JSON.stringify(data, null, 2)}
+`;
+  }
+
+  experienceResponsibilitiePrompt(data: GenerateResponsibilitieDto): string {
+    return `
+You are a professional resume writer.
+
+Using the information below, generate a one responsibilitie for the job. there might be responsibilities present already, but you need to make different one.
+
+
+
+RULES:
+- Do NOT include markdown
+- Do NOT include explanations
+- Do NOT invent experience
+- Do NOT repeat responsibilitie. 
+
+WHAT I WANT:
+- Return ONLY valid responsibilitie text
+- MAXIMUM 75 words
+
+USER DATA:
+${JSON.stringify(data, null, 2)}
+
+`;
+  }
+
+  projectFeaturePrompt(data: GenerateFeautureDto): string {
+    return `
+You are a professional resume writer.
+
+Using the information below, generate a one feature of the project. there might be features present already, but you need to make different one.
+
+
+RULES:
+- Do NOT include markdown
+- Do NOT include explanations
+- Do NOT invent experience
+- Do NOT repeat feature. 
+
+WHAT I WANT:
+- Return ONLY valid feature text
+- MAXIMUM 75 words
+
+USER DATA:
+${JSON.stringify(data, null, 2)}
+
 `;
   }
 }
