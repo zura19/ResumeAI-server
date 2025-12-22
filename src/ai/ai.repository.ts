@@ -17,6 +17,7 @@ RULES:
 - Do NOT include markdown
 - Do NOT include explanations
 - Do NOT invent experience
+- DO NOT include comments like: // something
 
 JSON FORMAT:
 {
