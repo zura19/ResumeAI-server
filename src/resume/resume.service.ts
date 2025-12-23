@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Project } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Project, Resume } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { ResumeRepository } from './resume.repository';
@@ -7,6 +11,7 @@ import { AiService } from 'src/ai/ai.service';
 import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto';
 import { GenerateFeautureDto } from './dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from './dto/with-ai/generate-responsibilitie.dto';
+import { UserRepository } from 'src/user/user.repository';
 
 @Injectable()
 export class ResumeService {
@@ -14,14 +19,16 @@ export class ResumeService {
     private db: DbService,
     private resumeRepository: ResumeRepository,
     private aiService: AiService,
+    private userRepo: UserRepository,
   ) {}
 
-  async createResume(body: CreateResumeDto) {
+  async createResume(body: CreateResumeDto, userId: string): Promise<string> {
     try {
       const generatedResume = await this.aiService.generateResume(body);
       const resume = await this.resumeRepository.createResume(
         body,
         generatedResume,
+        userId,
       );
 
       let res;
@@ -32,17 +39,14 @@ export class ResumeService {
       }
       // console.log(paresd);
 
-      return { success: true, id: resume.id };
+      return resume.id;
     } catch (error) {
       console.log(error);
-      return {
-        success: false,
-        message: error.message || 'Something went wrong',
-      };
+      throw error;
     }
   }
 
-  async getResume(id: string) {
+  async getResume(id: string): Promise<Resume> {
     try {
       const resume = await this.resumeRepository.getResume(id);
 
@@ -50,7 +54,7 @@ export class ResumeService {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
       }
 
-      return { success: true, data: resume };
+      return resume;
     } catch (error) {
       console.log(error);
       throw error;
@@ -77,8 +81,16 @@ export class ResumeService {
     }
   }
 
-  async updateResumeSummary(id: string, body: GeneratedResumeDto) {
+  async generateSummary(id: string, body: GeneratedResumeDto, userId: string) {
     try {
+      const canUseAi = await this.userRepo.canUseAi(userId);
+
+      if (!canUseAi) {
+        throw new BadRequestException(
+          'You have reached the limit of AI use per day. Please try again tomorrow.',
+        );
+      }
+
       const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
       if (!existingResume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
@@ -88,10 +100,6 @@ export class ResumeService {
 
       const summary = await this.aiService.generateSummary(body);
 
-      // const updatedResume = await this.resumeRepository.updateGeneratedResume(
-      //   id,
-      //   JSON.stringify({ ...body, summary }),
-      // );
       return { success: true, data: { summary } };
     } catch (error) {
       console.log(error);
@@ -99,24 +107,41 @@ export class ResumeService {
     }
   }
 
-  async generateFeature(body: GenerateFeautureDto) {
+  async generateFeature(body: GenerateFeautureDto, id: string) {
     try {
+      const canUseAi = await this.userRepo.canUseAi(id);
+
       // const feature = 'Generated feature';
+
+      if (!canUseAi) {
+        throw new BadRequestException(
+          'You have reached the limit of AI use per day. Please try again tomorrow.',
+        );
+      }
+
       const feature = await this.aiService.generateProjectFeature(body);
-      return { success: true, data: { feature } };
+      return { data: { feature } };
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
 
-  async generateResponsibilitie(body: GenerateResponsibilitieDto) {
+  async generateResponsibilitie(body: GenerateResponsibilitieDto, id: string) {
     try {
-      // const responsibilitie = 'Generated responsibilitie';
+      const canUseAi = await this.userRepo.canUseAi(id);
+      console.log(canUseAi + '5000');
 
+      if (!canUseAi) {
+        throw new BadRequestException(
+          'You have reached the limit of AI use per day. Please try again tomorrow.',
+        );
+      }
+
+      // const responsibilitie = 'Generated responsibilitie';
       const responsibilitie =
         await this.aiService.generateExperienceResponsibilitie(body);
-      return { success: true, data: { responsibilitie } };
+      return { data: { responsibilitie } };
     } catch (error) {
       console.log(error);
       throw error;

@@ -39,4 +39,8 @@ export class UserService {
       throw error;
     }
   }
+
+  async canUseAi(id: string) {
+    return await this.userRepo.canUseAi(id);
+  }
 }

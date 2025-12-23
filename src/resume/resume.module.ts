@@ -4,9 +4,10 @@ import { ResumeService } from './resume.service';
 import { ResumeRepository } from './resume.repository';
 import { AiModule } from 'src/ai/ai.module';
 import { AiService } from 'src/ai/ai.service';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
-  imports: [AiModule],
+  imports: [AiModule, UserModule],
   controllers: [ResumeController],
   providers: [ResumeService, ResumeRepository],
 })

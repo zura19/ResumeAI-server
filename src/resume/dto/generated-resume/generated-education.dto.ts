@@ -12,7 +12,7 @@ export class GeneratedEducationDto {
 
   @IsString()
   @IsNotEmpty()
-  field: string;
+  fieldOfStudy: string;
 
   @IsString()
   @IsNotEmpty()

@@ -6,11 +6,16 @@ import { CreateResumeDto } from './dto/resume.dto';
 export class ResumeRepository {
   constructor(private db: DbService) {}
 
-  async createResume(body: CreateResumeDto, generated: string | null) {
+  async createResume(
+    body: CreateResumeDto,
+    generated: string | null,
+    userId: string,
+  ) {
     const { personalInfo, education, experience, skills, projects } = body;
 
     const resume = await this.db.resume.create({
       data: {
+        userId,
         type: body.type,
         generatedResume: generated || '',
         personalInfo: {

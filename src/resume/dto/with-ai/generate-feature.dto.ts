@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class GenerateFeautureDto {
   @IsString()
@@ -12,6 +12,6 @@ export class GenerateFeautureDto {
 
   @IsArray()
   @IsString({ each: true })
-  @IsNotEmpty()
+  @IsOptional()
   technologies: string[];
 }

@@ -1,7 +1,10 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
+import { UserDecorator } from 'src/common/decorators/user.decorator';
+import { type User } from '@prisma/client';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('user')
 export class UserController {
@@ -13,7 +16,7 @@ export class UserController {
   > {
     const users = await this.userService.getAllUser();
 
-    return { success: true, data: { users } };
+    return { data: { users } };
   }
 
   @Get('/:id')
@@ -23,5 +26,12 @@ export class UserController {
     const user = await this.userService.getUser(id);
 
     return { data: { user } };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('ai/can-use-ai')
+  async canUseAi(@UserDecorator() user: User): Promise<ApiResponse<any>> {
+    const data = await this.userService.canUseAi(user.id);
+    return { data };
   }
 }

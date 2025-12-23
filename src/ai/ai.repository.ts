@@ -35,7 +35,7 @@ JSON FORMAT:
   },
   "education": {
     "degree": string,
-    "field": string,
+    "fieldOfStudy": string,
     "university": string,
     "startDate": string,
     "endDate": string
