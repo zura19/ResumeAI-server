@@ -12,6 +12,9 @@ import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto'
 import { GenerateFeautureDto } from './dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from './dto/with-ai/generate-responsibilitie.dto';
 import { UserRepository } from 'src/user/user.repository';
+import { hasDaysPassed } from 'src/common/lib/hasDaysPassed';
+
+const CAN_GENERATE_RESUME_IN = 2;
 
 @Injectable()
 export class ResumeService {
@@ -24,6 +27,14 @@ export class ResumeService {
 
   async createResume(body: CreateResumeDto, userId: string): Promise<string> {
     try {
+      const canGenerateResume = await this.canGenerate(userId);
+
+      if (!canGenerateResume) {
+        throw new BadRequestException(
+          `You can generate new resume only once every ${CAN_GENERATE_RESUME_IN} days. please try again later.`,
+        );
+      }
+
       const generatedResume = await this.aiService.generateResume(body);
       const resume = await this.resumeRepository.createResume(
         body,
@@ -142,6 +153,36 @@ export class ResumeService {
       const responsibilitie =
         await this.aiService.generateExperienceResponsibilitie(body);
       return { data: { responsibilitie } };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async canGenerate(id: string): Promise<boolean> {
+    try {
+      const lastResume = await this.db.resume.findFirst({
+        where: {
+          userId: id,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          createdAt: true,
+        },
+      });
+
+      if (!lastResume) return true;
+      const can = hasDaysPassed(lastResume.createdAt, CAN_GENERATE_RESUME_IN);
+
+      if (!can) {
+        throw new BadRequestException(
+          `You can generate new resume only once every ${CAN_GENERATE_RESUME_IN} days. please try again later.`,
+        );
+      }
+
+      return can;
     } catch (error) {
       console.log(error);
       throw error;

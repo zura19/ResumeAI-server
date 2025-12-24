@@ -54,6 +54,16 @@ export class ResumeController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('generate/can-generate')
+  async canGenerate(
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ canGenerate: boolean }>> {
+    const canGenerate = await this.resumeService.canGenerate(user.id);
+
+    return { data: { canGenerate } };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post('generate/feature')
   async generateFeature(
     @Body() body: GenerateFeautureDto,
