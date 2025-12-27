@@ -200,7 +200,7 @@ export class ResumeService {
   > {
     try {
       const universities = await fetch(
-        `https://universities.hipolabs.com/search?name=${name}&limit=10`,
+        `http://universities.hipolabs.com/search?name=${name}&limit=10`,
       );
       const data = await universities.json();
       return data;
