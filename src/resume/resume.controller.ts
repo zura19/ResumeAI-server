@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ResumeService } from './resume.service';
@@ -16,6 +17,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { Resume, type User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
+import { getUniversitiesQueryDto } from './dto/get-universities.query';
 
 @Controller('resume')
 export class ResumeController {
@@ -79,5 +81,13 @@ export class ResumeController {
     @UserDecorator() user: User,
   ) {
     return await this.resumeService.generateResponsibilitie(body, user.id);
+  }
+
+  @Get('/build/unis')
+  async getUniversities(
+    @Query() query: getUniversitiesQueryDto,
+  ): Promise<ApiResponse<{ universities: any }>> {
+    const universities = await this.resumeService.getUniversities(query.name);
+    return { data: { universities } };
   }
 }

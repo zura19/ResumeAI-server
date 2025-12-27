@@ -188,4 +188,25 @@ export class ResumeService {
       throw error;
     }
   }
+
+  async getUniversities(name: string): Promise<
+    {
+      country: string;
+      name: string;
+      web_pages: string[];
+      domains: string[];
+      state_province: string;
+    }[]
+  > {
+    try {
+      const universities = await fetch(
+        `https://universities.hipolabs.com/search?name=${name}&limit=10`,
+      );
+      const data = await universities.json();
+      return data;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
 }
