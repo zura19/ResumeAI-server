@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/register.dto';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
@@ -27,6 +35,20 @@ export class AuthController {
   ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
     const user = await this.authService.register(body);
     return { data: { user }, message: 'Registration successful' };
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth(@Req() req) {
+    return { message: 'Google authentication' };
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const user = await this.authService.googleLogin(req);
+
+    return res.redirect(process.env.CLIENT_URL! + '/google/callback');
   }
 
   @UseGuards(AuthGuard('jwt'))

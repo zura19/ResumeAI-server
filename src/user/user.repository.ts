@@ -27,9 +27,12 @@ export class UserRepository {
     });
   }
 
-  async create(data: RegisterDto) {
+  async create(
+    data: RegisterDto,
+    type: 'credentials' | 'google' = 'credentials',
+  ) {
     return this.db.user.create({
-      data,
+      data: type === 'credentials' ? data : { ...data, password: undefined },
     });
   }
 
