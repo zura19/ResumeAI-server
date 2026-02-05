@@ -1,0 +1,63 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { DbService } from 'src/db/db.service';
+import { CreatePlanDto } from './dtos/create-plan.dto';
+import { Plan, PlanName } from '@prisma/client';
+
+@Injectable()
+export class PlanService {
+  constructor(private readonly db: DbService) {}
+
+  async getPlans(): Promise<Partial<Plan>[]> {
+    try {
+      const plans = await this.db.plan.findMany({
+        select: {
+          id: true,
+          name: true,
+          priceMonthly: true,
+          recommended: true,
+          description: true,
+          features: true,
+        },
+      });
+      return plans;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async getPlanByName(name: PlanName) {
+    try {
+      const plan = await this.db.plan.findUnique({
+        where: { name },
+      });
+      if (!plan) {
+        throw new NotFoundException(`Plan with name ${name} not found`);
+      }
+      return plan;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async createPlan(body: CreatePlanDto): Promise<Plan> {
+    try {
+      const plan = await this.db.plan.create({
+        data: {
+          name: body.name,
+          recommended: body.recommended,
+          description: body.description,
+          features: body.features,
+          detailedDescription: body.detailedDescription,
+          additionalFeatures: body.additionalFeatures,
+          priceMonthly: body.priceMonthly,
+        },
+      });
+      return plan;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+}

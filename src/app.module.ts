@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { ResponseInterceptor } from './common/interceptors/resonse.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     AiModule,
     UserModule,
     AuthModule,
+    PlanModule,
   ],
   controllers: [AppController],
   providers: [
