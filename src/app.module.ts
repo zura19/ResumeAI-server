@@ -10,6 +10,9 @@ import { AuthModule } from './auth/auth.module';
 import { ResponseInterceptor } from './common/interceptors/resonse.interceptor';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PlanModule } from './plan/plan.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { PaymentModule } from './payment/payment.module';
+import { StripeWebhookModule } from './webhooks/stripe/stripe-webhook.module';
 
 @Module({
   imports: [
@@ -23,6 +26,9 @@ import { PlanModule } from './plan/plan.module';
     UserModule,
     AuthModule,
     PlanModule,
+    SubscriptionModule,
+    PaymentModule,
+    StripeWebhookModule,
   ],
   controllers: [AppController],
   providers: [

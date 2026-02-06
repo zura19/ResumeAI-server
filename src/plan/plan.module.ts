@@ -4,6 +4,7 @@ import { PlanService } from './plan.service';
 
 @Module({
   controllers: [PlanController],
-  providers: [PlanService]
+  providers: [PlanService],
+  exports: [PlanService],
 })
 export class PlanModule {}

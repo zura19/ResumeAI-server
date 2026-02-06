@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { RegisterDto } from 'src/auth/dtos/register.dto';
 import { isSameDay } from 'src/common/lib/isSameDay';
 import { DbService } from 'src/db/db.service';
@@ -20,13 +21,27 @@ export class UserRepository {
   }
 
   async findByEmail(email: string) {
-    return this.db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: {
         email,
       },
     });
+
+    return user;
   }
 
+  async getUserPlanByUserId(userId: string) {
+    const user = await this.db.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        subscription: { select: { plan: { select: { name: true } } } },
+      },
+    });
+
+    return user?.subscription?.plan.name;
+  }
   async create(
     data: RegisterDto,
     type: 'credentials' | 'google' = 'credentials',

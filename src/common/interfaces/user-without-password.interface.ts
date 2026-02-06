@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { PlanName, User } from '@prisma/client';
 
 export type UserWithoutPassword = Omit<User, 'password'> & {
   password?: string;

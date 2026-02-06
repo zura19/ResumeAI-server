@@ -5,6 +5,7 @@ import { UserWithoutPassword } from 'src/common/interfaces/user-without-password
 import { ProfileResponseDto } from './dtos/profile-response.dto';
 import { generate } from 'rxjs';
 import { create } from 'domain';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -47,8 +48,9 @@ export class UserService {
     return await this.userRepo.canUseAi(id);
   }
 
-  async getProfileData(id: string): Promise<ProfileResponseDto> {
-    const user = await this.userRepo.getById(id);
+  async getProfileData(user: User): Promise<ProfileResponseDto> {
+    // const user = await this.userRepo.getById(id);
+    const id = user.id;
 
     if (!user) {
       throw new NotFoundException(`User with id: ${id} not found`);

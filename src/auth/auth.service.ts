@@ -11,13 +11,15 @@ import { AuthRepository } from './auth.repository';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { LoginDto } from './dtos/login.dto';
 import { Response } from 'express';
-import { User } from '@prisma/client';
+import { PlanName, User } from '@prisma/client';
+import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userRepo: UserRepository,
     private authRepo: AuthRepository,
+    private subscriptionRepo: SubscriptionRepository,
   ) {}
 
   async register(body: RegisterDto): Promise<UserWithoutPassword> {
@@ -35,6 +37,15 @@ export class AuthService {
         password: hashedPassword,
       });
 
+      const plan = await this.subscriptionRepo.createSubscription(
+        user.id,
+        'free',
+      );
+
+      // const plan = (await this.userRepo.getUserPlanByUserId(
+      // user.id,
+      // )) as PlanName;
+
       return {
         ...user,
         password: undefined,
@@ -48,7 +59,7 @@ export class AuthService {
   async login(body: LoginDto, res: Response): Promise<UserWithoutPassword> {
     try {
       const user = await this.userRepo.findByEmail(body.email);
-      if (!user) {
+      if (!user || !user.id || !user.email) {
         throw new ForbiddenException('Invalid credentials');
       }
       if (!user.password) {
@@ -66,6 +77,10 @@ export class AuthService {
 
       const jwt = await this.authRepo.generateJwt(user.id, user.email);
       this.authRepo.signJwt(res, jwt.access_token);
+
+      // const plan = (await this.userRepo.getUserPlanByUserId(
+      // user.id,
+      // )) as PlanName;
 
       return {
         ...user,
@@ -94,6 +109,10 @@ export class AuthService {
         },
         'google',
       );
+      const plan = await this.subscriptionRepo.createSubscription(
+        user.id,
+        'free',
+      );
     }
 
     const payload = {
@@ -103,6 +122,7 @@ export class AuthService {
 
     const jwt = await this.authRepo.generateJwt(payload.sub, payload.email);
     this.authRepo.signJwt(req.res, jwt.access_token);
+    // const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
 
     return {
       ...user,
