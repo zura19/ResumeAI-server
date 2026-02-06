@@ -18,6 +18,7 @@ export class PlanService {
           description: true,
           features: true,
         },
+        orderBy: { priceMonthly: 'asc' },
       });
       return plans;
     } catch (error) {
@@ -44,6 +45,35 @@ export class PlanService {
   async createPlan(body: CreatePlanDto): Promise<Plan> {
     try {
       const plan = await this.db.plan.create({
+        data: {
+          name: body.name,
+          recommended: body.recommended,
+          description: body.description,
+          features: body.features,
+          detailedDescription: body.detailedDescription,
+          additionalFeatures: body.additionalFeatures,
+          priceMonthly: body.priceMonthly,
+        },
+      });
+      return plan;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async updatePlan(id: string, body: CreatePlanDto): Promise<Plan> {
+    try {
+      const planToUpdate = await this.db.plan.findUnique({
+        where: { id },
+      });
+
+      if (!planToUpdate) {
+        throw new NotFoundException(`Plan with id ${id} not found`);
+      }
+
+      const plan = await this.db.plan.update({
+        where: { id },
         data: {
           name: body.name,
           recommended: body.recommended,
