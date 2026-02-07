@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import type { Plan, User } from '@prisma/client';
@@ -18,5 +18,23 @@ export class PaymentController {
   ): Promise<ApiResponse<{ sessionUrl: string; sessionId: string }>> {
     const userData = await this.paymentService.createPaymentIntent(user, dto);
     return { data: userData };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/status/:sessionId')
+  async getPaymentStatus(@Param('sessionId') sessionId: string): Promise<
+    ApiResponse<{
+      status: string;
+      total: number | null;
+      currency: string | null;
+      last4: string | null;
+      created: Date | null;
+      email?: string | null;
+      isProcessed: boolean;
+    }>
+  > {
+    const paymentDetails =
+      await this.paymentService.checkPaymentStatus(sessionId);
+    return { data: paymentDetails };
   }
 }

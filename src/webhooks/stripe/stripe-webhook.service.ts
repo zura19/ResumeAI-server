@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PlanName } from '@prisma/client';
 import { Request } from 'express';
 import { DbService } from 'src/db/db.service';
+import { PaymentRepository } from 'src/payment/payment.repository';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 // import { SubscriptionService } from 'src/subscription/subscription.service';
 import Stripe from 'stripe';
@@ -14,6 +15,7 @@ export class StripeWebhookService {
   constructor(
     private config: ConfigService,
     private subscriptionRepo: SubscriptionRepository,
+    private paymentRepo: PaymentRepository,
     private db: DbService,
   ) {
     this.stripe = new Stripe(config.get('STRIPE_SECRET_KEY')!, {
@@ -27,6 +29,10 @@ export class StripeWebhookService {
       signature,
       this.config.get('STRIPE_WEBHOOK_SECRET')!,
     );
+
+    // if (event.id.length > 12) {
+    //   throw new Error('Method not implemented.');
+    // }
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -50,6 +56,7 @@ export class StripeWebhookService {
       const stripeSubscriptionId = session.subscription as string;
 
       const planName = session.metadata?.planName as PlanName;
+      const planId = session.metadata?.planId as string;
 
       const user = await this.db.user.findFirst({
         where: { stripeCustomerId },
@@ -57,11 +64,30 @@ export class StripeWebhookService {
 
       if (!user) throw new NotFoundException('User not found');
 
-      await this.subscriptionRepo.updateSubscription(user.id, planName, {
-        stripeSubscriptionId,
-        status: 'ACTIVE',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      await this.db.$transaction(async (tx) => {
+        await tx.subscription.update({
+          where: { userId: user.id },
+          data: {
+            stripeSubscriptionId,
+            status: 'ACTIVE',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        await tx.payment.create({
+          data: {
+            // Use 'connect' to satisfy the "Argument user is missing" error
+            user: {
+              connect: { id: user.id },
+            },
+            // Fallback to stripeSubscriptionId if payment_intent is null
+            stripePaymentIntentId: stripeSubscriptionId,
+            currency: session.currency as string,
+            status: 'SUCCEEDED',
+            amount: session.amount_total as number,
+          },
+        });
       });
     } catch (error) {
       console.log(error);

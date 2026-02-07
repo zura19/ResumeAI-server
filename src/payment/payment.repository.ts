@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PlanName } from '@prisma/client';
+import { PaymentStatus, PlanName } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import Stripe from 'stripe';
 
@@ -17,18 +17,23 @@ export class PaymentRepository {
     });
   }
 
-  async getPlanByName(planName: PlanName) {
-    // const plan = await this.db.plan.findUnique({
-    //   where: {
-    //     name: planName,
-    //   },
-    // });
-
-    // if (!plan) {
-    //   throw new NotFoundException('Plan not found');
-    // }
-
-    return planName;
+  async createPayment(data: {
+    userId: string;
+    stripePaymentIntentId: string;
+    currency: string;
+    status: PaymentStatus;
+    planName: string;
+    amount: number;
+  }) {
+    const payment = await this.db.payment.create({
+      data: {
+        userId: data.userId,
+        stripePaymentIntentId: data.stripePaymentIntentId,
+        currency: data.currency,
+        status: data.status,
+        amount: data.amount,
+      },
+    });
   }
 
   async createStripeCustomer(userId: string): Promise<string> {
@@ -52,6 +57,8 @@ export class PaymentRepository {
     stripeCustomerId: string,
     amount: number,
     planName: PlanName,
+    planId: string,
+    userId: string,
   ) {
     const clientUrl = this.configService.get('CLIENT_URL');
 
@@ -77,11 +84,32 @@ export class PaymentRepository {
       mode: 'subscription',
       metadata: {
         planName,
+        planId,
+        userId,
       },
-      success_url: `${clientUrl}/checkout/success`,
+      success_url: `${clientUrl}/checkout?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${clientUrl}/checkout/cancel`,
     });
 
     return session;
+  }
+
+  async retrieveSession(
+    stripeSessionId: string,
+  ): Promise<Stripe.Response<Stripe.Checkout.Session>> {
+    const session = await this.stripe.checkout.sessions.retrieve(
+      stripeSessionId,
+      { expand: ['payment_intent'] },
+    );
+    return session;
+  }
+
+  async findPaymentIntentByIntentId(id: string) {
+    const payment = await this.db.payment.findUnique({
+      where: {
+        stripePaymentIntentId: id,
+      },
+    });
+    return payment;
   }
 }

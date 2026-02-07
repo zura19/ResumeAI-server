@@ -8,5 +8,6 @@ import { PlanModule } from 'src/plan/plan.module';
   imports: [PlanModule],
   controllers: [PaymentController],
   providers: [PaymentService, PaymentRepository],
+  exports: [PaymentRepository],
 })
 export class PaymentModule {}
