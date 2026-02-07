@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PlanName, Subscription, User } from '@prisma/client';
 import { RegisterDto } from 'src/auth/dtos/register.dto';
 import { isSameDay } from 'src/common/lib/isSameDay';
 import { DbService } from 'src/db/db.service';
@@ -45,10 +49,46 @@ export class UserRepository {
   async create(
     data: RegisterDto,
     type: 'credentials' | 'google' = 'credentials',
-  ) {
-    return this.db.user.create({
-      data: type === 'credentials' ? data : { ...data, password: undefined },
+  ): Promise<{ user: User }> {
+    const transaction = await this.db.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: type === 'credentials' ? data : { ...data, password: undefined },
+      });
+
+      if (!user) throw new BadRequestException('User can not created');
+
+      const plan = await tx.plan.findUnique({
+        where: { name: 'free' },
+      });
+
+      if (!plan) throw new NotFoundException('Plan not found');
+
+      // Check if subscription already exists for this user
+      let subscription = await tx.subscription.findUnique({
+        where: { userId: user.id }, // Assuming userId is unique
+        include: { plan: { select: { name: true } } },
+      });
+
+      if (!subscription) {
+        subscription = await tx.subscription.create({
+          data: {
+            status: 'ACTIVE',
+            cancelAtPeriodEnd: false,
+            user: { connect: { id: user.id } },
+            plan: { connect: { id: plan.id } },
+          },
+          include: { plan: { select: { name: true } } },
+        });
+      }
+      const userWithPlan = {
+        ...user,
+        plan: subscription.plan.name,
+      };
+
+      return { user: userWithPlan };
     });
+
+    return transaction;
   }
 
   async canUseAi(id: string): Promise<boolean> {

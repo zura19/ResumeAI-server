@@ -23,13 +23,13 @@ export class SubscriptionRepository {
 
     const planId = plan.id;
     const sub = await this.dbService.subscription.create({
-      data: { userId, planId, status: 'ACTIVE', cancelAtPeriodEnd: false },
+      data: { status: 'ACTIVE', cancelAtPeriodEnd: false, planId, userId },
       // where: { userId },
       // update: { planId, status: 'ACTIVE', cancelAtPeriodEnd: false },
-      include: { plan: { select: { name: true } } },
+      // include: { plan: { select: { name: true } } },
     });
 
-    return sub.plan.name;
+    // return sub.plan.name;
   }
 
   async updateSubscription(

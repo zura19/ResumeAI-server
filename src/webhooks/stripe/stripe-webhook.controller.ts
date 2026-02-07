@@ -11,7 +11,7 @@ export class StripeWebhookController {
     @Req() req: Request,
     @Headers('stripe-signature') signature: string,
   ) {
-    // @ts-expect-error idk
+    // @ts-expect-error raw body
     return this.stripeWebhookService.handle(req.body, signature);
   }
 }

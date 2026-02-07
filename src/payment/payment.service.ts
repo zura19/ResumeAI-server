@@ -36,7 +36,10 @@ export class PaymentService {
     }
   }
 
-  async checkPaymentStatus(stripeSessionId: string): Promise<{
+  async checkPaymentStatus(
+    stripeSessionId: string,
+    user: User,
+  ): Promise<{
     status: string;
     total: number | null;
     currency: string | null;
@@ -44,6 +47,7 @@ export class PaymentService {
     created: Date | null;
     email?: string | null;
     isProcessed: boolean;
+    user: User;
   }> {
     try {
       const session = await this.paymentRepo.retrieveSession(stripeSessionId);
@@ -74,6 +78,7 @@ export class PaymentService {
         last4: last4 || '****',
         created: new Date(session.created * 1000), // Stripe uses seconds, JS uses ms
         email,
+        user,
         // paymentId: dbPayment?.id || 'Pending...', // Your internal DB ID
       };
     } catch (error) {

@@ -68,6 +68,7 @@ export class StripeWebhookService {
         await tx.subscription.update({
           where: { userId: user.id },
           data: {
+            plan: { connect: { id: planId } },
             stripeSubscriptionId,
             status: 'ACTIVE',
             currentPeriodStart: new Date(),

@@ -22,7 +22,10 @@ export class PaymentController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('/status/:sessionId')
-  async getPaymentStatus(@Param('sessionId') sessionId: string): Promise<
+  async getPaymentStatus(
+    @Param('sessionId') sessionId: string,
+    @UserDecorator() user: User,
+  ): Promise<
     ApiResponse<{
       status: string;
       total: number | null;
@@ -33,8 +36,10 @@ export class PaymentController {
       isProcessed: boolean;
     }>
   > {
-    const paymentDetails =
-      await this.paymentService.checkPaymentStatus(sessionId);
+    const paymentDetails = await this.paymentService.checkPaymentStatus(
+      sessionId,
+      user,
+    );
     return { data: paymentDetails };
   }
 }

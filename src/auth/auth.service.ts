@@ -32,19 +32,10 @@ export class AuthService {
 
       const hashedPassword = await this.authRepo.hashPassword(body.password);
 
-      const user = await this.userRepo.create({
+      const { user } = await this.userRepo.create({
         ...body,
         password: hashedPassword,
       });
-
-      const plan = await this.subscriptionRepo.createSubscription(
-        user.id,
-        'free',
-      );
-
-      // const plan = (await this.userRepo.getUserPlanByUserId(
-      // user.id,
-      // )) as PlanName;
 
       return {
         ...user,
@@ -78,13 +69,16 @@ export class AuthService {
       const jwt = await this.authRepo.generateJwt(user.id, user.email);
       this.authRepo.signJwt(res, jwt.access_token);
 
-      // const plan = (await this.userRepo.getUserPlanByUserId(
-      // user.id,
-      // )) as PlanName;
+      const plan = await this.subscriptionRepo.getSubscriptionByUserId(user.id);
 
       return {
-        ...user,
-        password: undefined,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        // @ts-expect-error plan is not in user type
+        plan: plan.name,
       };
     } catch (error) {
       console.log(error);
@@ -100,7 +94,7 @@ export class AuthService {
     let user = await this.userRepo.findByEmail(req.user.email);
 
     if (!user) {
-      user = await this.userRepo.create(
+      const transaction = await this.userRepo.create(
         {
           email: req.user.email,
           firstName: req.user.firstName,
@@ -109,10 +103,8 @@ export class AuthService {
         },
         'google',
       );
-      const plan = await this.subscriptionRepo.createSubscription(
-        user.id,
-        'free',
-      );
+
+      user = transaction.user;
     }
 
     const payload = {
@@ -122,11 +114,16 @@ export class AuthService {
 
     const jwt = await this.authRepo.generateJwt(payload.sub, payload.email);
     this.authRepo.signJwt(req.res, jwt.access_token);
-    // const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
+    const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
 
     return {
-      ...user,
-      password: undefined,
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      // @ts-expect-error plan is not in user type
+      plan,
     };
   }
 
