@@ -59,19 +59,26 @@ export class UserService {
     const userData = {
       ...user,
       password: undefined,
-      aiLastUsedAt: undefined,
-      aiUsed: undefined,
     };
 
-    const resumesData = await this.db.resume.findMany({
-      where: {
-        userId: id,
-      },
-      include: {
-        personalInfo: true,
-      },
-    });
-
+    const [resumesData, userTotalTransactions] = await Promise.all([
+      await this.db.resume.findMany({
+        where: {
+          userId: id,
+        },
+        include: {
+          personalInfo: true,
+        },
+      }),
+      await this.db.payment.aggregate({
+        where: {
+          userId: id,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
     const resumes = resumesData.map((resume) => ({
       id: resume.id,
       title: resume.personalInfo?.fullName || '',
@@ -79,6 +86,12 @@ export class UserService {
       createdAt: resume.createdAt,
     }));
 
-    return { user: userData, resumes: resumes };
+    const totals = {
+      totalResumes: +resumes.length,
+      totalAiCredits: +user.aiCreditsTotal,
+      totalTransactions: Number(userTotalTransactions._sum.amount),
+    };
+
+    return { user: userData, resumes: resumes, totals };
   }
 }
