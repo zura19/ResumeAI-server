@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PaymentRepository } from './payment.repository';
-import { Plan, User } from '@prisma/client';
+import { Payment, Plan, User } from '@prisma/client';
 import { CheckoutDto } from './dtos/checkout.dto';
 import { PlanService } from 'src/plan/plan.service';
 import Stripe from 'stripe';
@@ -81,6 +81,21 @@ export class PaymentService {
         user,
         // paymentId: dbPayment?.id || 'Pending...', // Your internal DB ID
       };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async getUserPayments(user: User, limit: string): Promise<Payment[]> {
+    try {
+      const limitInt = parseInt(limit);
+      console.log(limitInt);
+      const payment = await this.paymentRepo.getUserPayments(
+        user.id,
+        limitInt || 5,
+      );
+      return payment;
     } catch (error) {
       console.log(error);
       throw error;

@@ -17,6 +17,14 @@ export class PaymentRepository {
     });
   }
 
+  async getUserPayments(userId: string, limit: number) {
+    return this.db.payment.findMany({
+      where: { userId: userId },
+      take: limit || 5,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async createPayment(data: {
     userId: string;
     stripePaymentIntentId: string;
