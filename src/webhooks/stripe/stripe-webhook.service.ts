@@ -89,6 +89,14 @@ export class StripeWebhookService {
             amount: session.amount_total as number,
           },
         });
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            aiCreditsThisMonth: 0,
+            aiLastUsedAt: null,
+          },
+        });
       });
     } catch (error) {
       console.log(error);

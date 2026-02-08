@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { Plan, PlanName } from '@prisma/client';
@@ -27,7 +31,7 @@ export class PlanService {
     }
   }
 
-  async getPlanByName(name: PlanName) {
+  async getPlanByName(name: PlanName, userId: string) {
     try {
       const plan = await this.db.plan.findUnique({
         where: { name },
@@ -35,6 +39,20 @@ export class PlanService {
       if (!plan) {
         throw new NotFoundException(`Plan with name ${name} not found`);
       }
+
+      const userPlan = await this.db.user.findUnique({
+        where: { id: userId },
+        include: {
+          subscription: { select: { plan: { select: { name: true } } } },
+        },
+      });
+
+      if (userPlan?.subscription?.plan.name === name) {
+        throw new BadRequestException(
+          `Plan with name: ${name} is already active`,
+        );
+      }
+
       return plan;
     } catch (error) {
       console.log(error);

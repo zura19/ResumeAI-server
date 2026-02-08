@@ -93,63 +93,88 @@ export class UserRepository {
 
   async canUseAi(id: string): Promise<boolean> {
     const LIMIT = 3;
-
-    const user = await this.getById(id);
-    if (!user) return false;
-
-    const now = new Date();
-
-    // First time ever
-    if (!user.aiLastUsedAt) {
-      await this.db.user.update({
-        where: { id },
-        data: {
-          aiUsed: 1,
-          aiLastUsedAt: now,
-        },
-      });
-
-      return true;
-    }
-
-    const sameDay = isSameDay(new Date(user.aiLastUsedAt), now);
-
-    // Same day → enforce limit
-    if (sameDay) {
-      if (user.aiUsed >= LIMIT) {
-        return false;
-      }
-
-      await this.db.user.update({
-        where: { id },
-        data: {
-          aiUsed: user.aiUsed + 1,
-          aiLastUsedAt: now,
-        },
-      });
-
-      return true;
-    }
-
-    // New day → reset counter
-    await this.db.user.update({
+    const user = await this.db.user.findUnique({
       where: { id },
-      data: {
-        aiUsed: 1,
-        aiLastUsedAt: now,
+      include: {
+        subscription: {
+          include: {
+            plan: { select: { aiCreditsPerMonth: true } },
+          },
+        },
       },
     });
+
+    const limit = user?.subscription?.plan.aiCreditsPerMonth;
+    if (!user || !limit) return false;
+
+    if (user.aiCreditsThisMonth >= limit) return false;
+
+    // const now = new Date();
+
+    // // First time ever
+    // if (!user.aiLastUsedAt) {
+    //   await this.db.user.update({
+    //     where: { id },
+    //     data: {
+    //       aiCreditsThisMonth: 1,
+    //       aiCreditsTotal: { increment: 1 },
+    //       aiLastUsedAt: now,
+    //     },
+    //   });
+
+    //   return true;
+    // }
+
+    // const sameDay = isSameDay(new Date(user.aiLastUsedAt), now);
+
+    // // Same day → enforce limit
+    // if (sameDay) {
+    //   if (user.aiCreditsThisMonth >= LIMIT) {
+    //     return false;
+    //   }
+
+    //   await this.db.user.update({
+    //     where: { id },
+    //     data: {
+    //       aiCreditsThisMonth: user.aiCreditsThisMonth + 1,
+    //       aiCreditsTotal: { increment: 1 },
+    //       aiLastUsedAt: now,
+    //     },
+    //   });
+
+    //   return true;
+    // }
+
+    // New day → reset counter
+    // await this.db.user.update({
+    //   where: { id },
+    //   data: {
+    //     aiCreditsThisMonth: 1,
+    //     aiCreditsTotal: { increment: 1 },
+    //     aiLastUsedAt: now,
+    //   },
+    // });
+
+    return true;
+  }
+
+  async canGenerateAI(id: string) {
+    const user = await this.db.user.findUnique({
+      where: { id },
+      include: {
+        resumes: { select: { id: true } },
+        subscription: {
+          include: {
+            plan: { select: { totalResumes: true } },
+          },
+        },
+      },
+    });
+    const limit = user?.subscription?.plan.totalResumes;
+
+    if (!user || !limit) return false;
+    if (user.resumes.length >= limit) return false;
 
     return true;
   }
 }
-
-// async function updateAiUsage(id: string, now: Date, number: number) {
-//   await this.db.user.update({
-//     where: { id },
-//     data: {
-//       aiUsed: number,
-//       aiLastUsedAt: now,
-//     },
-//   });
-// }

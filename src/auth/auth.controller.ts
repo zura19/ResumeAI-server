@@ -24,7 +24,7 @@ export class AuthController {
   async login(
     @Body() body: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
+  ) {
     const user = await this.authService.login(body, res);
     return { data: { user }, message: 'Login successful' };
   }

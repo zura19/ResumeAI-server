@@ -6,12 +6,15 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { PlanService } from './plan.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
-import { Plan, PlanName } from '@prisma/client';
+import type { Plan, PlanName, User } from '@prisma/client';
 import { GetPlanByNameDto } from './dtos/get-plan.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { UserDecorator } from 'src/common/decorators/user.decorator';
 
 @Controller('plan')
 export class PlanController {
@@ -38,11 +41,13 @@ export class PlanController {
     return { data: plan };
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('/:name')
   async getPlanByName(
     @Param() param: GetPlanByNameDto,
+    @UserDecorator() user: User,
   ): Promise<ApiResponse<Plan>> {
-    const plan = await this.planService.getPlanByName(param.name);
+    const plan = await this.planService.getPlanByName(param.name, user.id);
     return { data: plan };
   }
 }

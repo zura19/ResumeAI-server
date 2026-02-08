@@ -69,7 +69,21 @@ export class AuthService {
       const jwt = await this.authRepo.generateJwt(user.id, user.email);
       this.authRepo.signJwt(res, jwt.access_token);
 
-      const plan = await this.subscriptionRepo.getSubscriptionByUserId(user.id);
+      const plan = (await this.userRepo.getUserPlanByUserId(
+        user.id,
+      )) as PlanName;
+
+      console.log(plan);
+      console.log({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        plan,
+      });
+
+      if (!plan) throw new NotFoundException('Plan not found');
 
       return {
         id: user.id,
@@ -78,7 +92,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         // @ts-expect-error plan is not in user type
-        plan: plan.name,
+        plan,
       };
     } catch (error) {
       console.log(error);

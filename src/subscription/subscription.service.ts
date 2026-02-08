@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { SubscriptionRepository } from './subcscription.repository';
 
 @Injectable()
 export class SubscriptionService {
+  constructor(private subscriptionRepository: SubscriptionRepository) {}
+
   create(createSubscriptionDto: CreateSubscriptionDto) {
     return 'This action adds a new subscription';
   }
@@ -12,8 +15,8 @@ export class SubscriptionService {
     return `This action returns all subscription`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} subscription`;
+  getUserSubscriptionInfo(userId: string) {
+    return this.subscriptionRepository.getUserSubscriptionInfo(userId);
   }
 
   update(id: number, updateSubscriptionDto: UpdateSubscriptionDto) {

@@ -13,7 +13,7 @@ export class PaymentService {
   ) {}
   async createPaymentIntent(user: User, dto: CheckoutDto): Promise<any> {
     try {
-      const plan = await this.planService.getPlanByName(dto.plan);
+      const plan = await this.planService.getPlanByName(dto.plan, user.id);
 
       let stripeCustomerId = user.stripeCustomerId;
       if (!user.stripeCustomerId) {

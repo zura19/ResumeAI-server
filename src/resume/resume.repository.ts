@@ -13,68 +13,82 @@ export class ResumeRepository {
   ) {
     const { personalInfo, education, experience, skills, projects } = body;
 
-    const resume = await this.db.resume.create({
-      data: {
-        userId,
-        type: body.type,
-        generatedResume: generated || '',
-        personalInfo: {
-          create: {
-            fullName: personalInfo.fullName,
-            email: personalInfo.email,
-            phone: personalInfo.phone,
-            address: personalInfo.address,
+    const transation = await this.db.$transaction(async (tx) => {
+      const resume = await tx.resume.create({
+        data: {
+          userId,
+          type: body.type,
+          generatedResume: generated || '',
+          personalInfo: {
+            create: {
+              fullName: personalInfo.fullName,
+              email: personalInfo.email,
+              phone: personalInfo.phone,
+              address: personalInfo.address,
+            },
+          },
+
+          skills: {
+            create: {
+              soft: skills.soft,
+              languages: skills.languages,
+              technical: skills.technical,
+            },
+          },
+
+          education: {
+            create: education.map((edu) => ({
+              university: edu.university,
+              degree: edu.degree,
+              fieldOfStudy: edu.fieldOfStudy,
+              startDate: edu.startDate,
+              endDate: edu.endDate,
+              stillStudying: edu.stillStudying ?? false,
+            })),
+          },
+
+          experiences: {
+            create: experience.map((exp) => ({
+              company: exp.company,
+              position: exp.position,
+              description: exp.description ?? null,
+              startDate: exp.startDate,
+              endDate: exp.endDate,
+              stillWorking: exp.stillWorking ?? false,
+            })),
+          },
+
+          projects: {
+            create: projects.map((project) => ({
+              title: project.title,
+              description: project.description,
+            })),
           },
         },
 
-        skills: {
-          create: {
-            soft: skills.soft,
-            languages: skills.languages,
-            technical: skills.technical,
-          },
+        include: {
+          personalInfo: true,
+          skills: true,
+          education: true,
+          experiences: true,
+          projects: true,
         },
+      });
 
-        education: {
-          create: education.map((edu) => ({
-            university: edu.university,
-            degree: edu.degree,
-            fieldOfStudy: edu.fieldOfStudy,
-            startDate: edu.startDate,
-            endDate: edu.endDate,
-            stillStudying: edu.stillStudying ?? false,
-          })),
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          aiCreditsThisMonth: { increment: 1 },
+          aiCreditsTotal: { increment: 1 },
+          aiLastUsedAt: new Date(),
+          resumesThisMonth: { increment: 1 },
+          resumeLastGeneratedAt: new Date(),
         },
+      });
 
-        experiences: {
-          create: experience.map((exp) => ({
-            company: exp.company,
-            position: exp.position,
-            description: exp.description ?? null,
-            startDate: exp.startDate,
-            endDate: exp.endDate,
-            stillWorking: exp.stillWorking ?? false,
-          })),
-        },
-
-        projects: {
-          create: projects.map((project) => ({
-            title: project.title,
-            description: project.description,
-          })),
-        },
-      },
-
-      include: {
-        personalInfo: true,
-        skills: true,
-        education: true,
-        experiences: true,
-        projects: true,
-      },
+      return resume;
     });
-
-    return resume;
+    return transation;
   }
 
   async getResume(id: string) {

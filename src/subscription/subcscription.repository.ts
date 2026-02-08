@@ -13,6 +13,15 @@ export class SubscriptionRepository {
     });
   }
 
+  async getUserSubscriptionInfo(userId: string) {
+    const subscription = await this.dbService.subscription.findFirst({
+      where: { userId },
+      include: { plan: true },
+    });
+
+    return subscription;
+  }
+
   async createSubscription(userId: string, planName: PlanName) {
     const plan = await this.dbService.plan.findUnique({
       where: { name: planName },
