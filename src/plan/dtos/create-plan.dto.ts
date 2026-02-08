@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   Min,
+  IsNotEmpty,
 } from 'class-validator';
 import { PlanName } from '@prisma/client';
 
@@ -35,4 +36,12 @@ export class CreatePlanDto {
   @IsInt()
   @Min(0)
   priceMonthly: number;
+
+  @IsString()
+  @IsNotEmpty()
+  stripePriceId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  stripeProductId: string;
 }

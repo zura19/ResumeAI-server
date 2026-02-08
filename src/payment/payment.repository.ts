@@ -55,29 +55,28 @@ export class PaymentRepository {
 
   async createCheckoutSession(
     stripeCustomerId: string,
-    amount: number,
+    priceId: string,
     planName: PlanName,
     planId: string,
     userId: string,
   ) {
     const clientUrl = this.configService.get('CLIENT_URL');
-
-    const price = await this.stripe.prices.create({
-      unit_amount: amount,
-      currency: 'usd',
-      recurring: {
-        interval: 'month', // or 'year'
-      },
-      product_data: {
-        name: planName + ' Plan',
-      },
-    });
+    // const price = await this.stripe.prices.create({
+    //   unit_amount: amount,
+    //   currency: 'usd',
+    //   recurring: {
+    //     interval: 'month', // or 'year'
+    //   },
+    //   product_data: {
+    //     name: planName + ' Plan',
+    //   },
+    // });
 
     const session = await this.stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       line_items: [
         {
-          price: price.id,
+          price: priceId,
           quantity: 1,
         },
       ],

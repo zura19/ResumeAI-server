@@ -22,7 +22,7 @@ export class PaymentService {
 
       const session = await this.paymentRepo.createCheckoutSession(
         stripeCustomerId as string,
-        plan.priceMonthly,
+        plan.stripePriceId,
         plan.name,
         plan.id,
         user.id,

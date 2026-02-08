@@ -150,8 +150,9 @@ model Plan {
   detailedDescription String
   additionalFeatures  String[]
 
-  priceMonthly  Int
-  stripePriceId String? @unique
+  priceMonthly    Int
+  stripePriceId   String @unique
+  stripeProductId String @unique
 
   subscriptions Subscription[]
 

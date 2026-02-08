@@ -47,7 +47,10 @@ export class PlanService {
         },
       });
 
-      if (userPlan?.subscription?.plan.name === name) {
+      if (
+        userPlan?.subscription?.plan.name === name &&
+        userPlan.role === 'user'
+      ) {
         throw new BadRequestException(
           `Plan with name: ${name} is already active`,
         );
@@ -71,6 +74,8 @@ export class PlanService {
           detailedDescription: body.detailedDescription,
           additionalFeatures: body.additionalFeatures,
           priceMonthly: body.priceMonthly,
+          stripePriceId: body.stripePriceId,
+          stripeProductId: body.stripeProductId,
         },
       });
       return plan;
@@ -100,6 +105,8 @@ export class PlanService {
           detailedDescription: body.detailedDescription,
           additionalFeatures: body.additionalFeatures,
           priceMonthly: body.priceMonthly,
+          stripePriceId: body.stripePriceId,
+          stripeProductId: body.stripeProductId,
         },
       });
       return plan;
