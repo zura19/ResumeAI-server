@@ -8,6 +8,7 @@ import {
   IsOptional,
   Min,
   IsNotEmpty,
+  IsNumber,
 } from 'class-validator';
 import { PlanName } from '@prisma/client';
 
@@ -44,4 +45,12 @@ export class CreatePlanDto {
   @IsString()
   @IsNotEmpty()
   stripeProductId: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  aiCreditsPerMonth: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  totalResumes: number;
 }

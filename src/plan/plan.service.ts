@@ -107,6 +107,8 @@ export class PlanService {
           priceMonthly: body.priceMonthly,
           stripePriceId: body.stripePriceId,
           stripeProductId: body.stripeProductId,
+          aiCreditsPerMonth: body.aiCreditsPerMonth,
+          totalResumes: body.totalResumes,
         },
       });
       return plan;
