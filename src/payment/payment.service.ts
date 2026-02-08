@@ -23,12 +23,13 @@ export class PaymentService {
       const session = await this.paymentRepo.createCheckoutSession(
         stripeCustomerId as string,
         plan.stripePriceId,
-        plan.name,
-        plan.id,
-        user.id,
+        {
+          planName: plan.name,
+          planId: plan.id,
+          userId: user.id,
+        },
       );
 
-      //   return { url: 'test', sessionId: 'test', user };
       return { sessionUrl: session.url, sessionId: session.id };
     } catch (error) {
       console.log(error);
@@ -54,18 +55,12 @@ export class PaymentService {
 
       const paymentIntent = session.payment_intent as Stripe.PaymentIntent;
 
-      const dbPayment = await this.paymentRepo.findPaymentIntentByIntentId(
-        session.subscription as string,
-      );
+      const dbPayment =
+        await this.paymentRepo.findPaymentByStripeSubscriptionId(
+          session.subscription as string,
+        );
 
       console.log(dbPayment);
-      // Note: For subscriptions, you might need to look at session.setup_intent
-      // or the latest_invoice. We'll stick to the most common way below:
-
-      const paymentMethod = paymentIntent?.payment_method_types[0]; // e.g., 'card'
-
-      // To get the last 4 digits, we usually look at the charges
-      // This is a bit deep in the Stripe object:
       const last4 = paymentIntent?.payment_details?.customer_reference;
 
       const email = session.customer_details?.email;
@@ -79,7 +74,6 @@ export class PaymentService {
         created: new Date(session.created * 1000), // Stripe uses seconds, JS uses ms
         email,
         user,
-        // paymentId: dbPayment?.id || 'Pending...', // Your internal DB ID
       };
     } catch (error) {
       console.log(error);

@@ -194,11 +194,13 @@ enum StripeSubscriptionStatus {
 }
 
 model Payment {
-  id                    String        @id @default(cuid())
-  stripePaymentIntentId String        @unique
-  amount                Int
-  currency              String
-  status                PaymentStatus
+  id                   String @id @default(cuid())
+  stripeSubscriptionId String @unique
+  invoice              String
+
+  amount   Int
+  currency String
+  status   PaymentStatus
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

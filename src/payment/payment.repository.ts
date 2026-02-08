@@ -36,7 +36,8 @@ export class PaymentRepository {
     const payment = await this.db.payment.create({
       data: {
         userId: data.userId,
-        stripePaymentIntentId: data.stripePaymentIntentId,
+        invoice: data.planName,
+        stripeSubscriptionId: data.stripePaymentIntentId,
         currency: data.currency,
         status: data.status,
         amount: data.amount,
@@ -64,21 +65,14 @@ export class PaymentRepository {
   async createCheckoutSession(
     stripeCustomerId: string,
     priceId: string,
-    planName: PlanName,
-    planId: string,
-    userId: string,
+    metadata: {
+      planName: PlanName;
+      planId: string;
+      userId: string;
+    },
   ) {
     const clientUrl = this.configService.get('CLIENT_URL');
-    // const price = await this.stripe.prices.create({
-    //   unit_amount: amount,
-    //   currency: 'usd',
-    //   recurring: {
-    //     interval: 'month', // or 'year'
-    //   },
-    //   product_data: {
-    //     name: planName + ' Plan',
-    //   },
-    // });
+    const { planName, planId, userId } = metadata;
 
     const session = await this.stripe.checkout.sessions.create({
       customer: stripeCustomerId,
@@ -111,10 +105,10 @@ export class PaymentRepository {
     return session;
   }
 
-  async findPaymentIntentByIntentId(id: string) {
+  async findPaymentByStripeSubscriptionId(id: string) {
     const payment = await this.db.payment.findUnique({
       where: {
-        stripePaymentIntentId: id,
+        stripeSubscriptionId: id,
       },
     });
     return payment;

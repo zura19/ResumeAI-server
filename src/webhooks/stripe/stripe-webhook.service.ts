@@ -1,11 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PlanName } from '@prisma/client';
+import {
+  PaymentStatus,
+  PlanName,
+  StripeSubscriptionStatus,
+} from '@prisma/client';
 import { Request } from 'express';
 import { DbService } from 'src/db/db.service';
 import { PaymentRepository } from 'src/payment/payment.repository';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
-// import { SubscriptionService } from 'src/subscription/subscription.service';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -30,20 +33,9 @@ export class StripeWebhookService {
       this.config.get('STRIPE_WEBHOOK_SECRET')!,
     );
 
-    // if (event.id.length > 12) {
-    //   throw new Error('Method not implemented.');
-    // }
-
     switch (event.type) {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object);
-        break;
-
-      case 'customer.subscription.deleted':
-        // Free plan
-        // stripeSubscriptionId = null
-        // status = FREE
-        // await this.onSubscriptionDeleted(event.data.object);
         break;
     }
 
@@ -54,8 +46,23 @@ export class StripeWebhookService {
     try {
       const stripeCustomerId = session.customer as string;
       const stripeSubscriptionId = session.subscription as string;
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(
+        stripeSubscriptionId,
+        { expand: ['latest_invoice.payment_intent'] },
+      );
 
-      const planName = session.metadata?.planName as PlanName;
+      const latestInvoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+
+      const startDate = new Date(stripeSubscription.start_date * 1000);
+      const endDate = this.calculateSubscriptionEndDate(
+        stripeSubscription.start_date,
+        // @ts-expect-error stripeSubscription
+        stripeSubscription?.plan?.interval,
+        // @ts-expect-error stripeSubscription
+        stripeSubscription?.plan?.interval_count,
+      );
+      const status =
+        stripeSubscription.status.toLocaleUpperCase() as StripeSubscriptionStatus;
       const planId = session.metadata?.planId as string;
 
       const user = await this.db.user.findFirst({
@@ -70,9 +77,9 @@ export class StripeWebhookService {
           data: {
             plan: { connect: { id: planId } },
             stripeSubscriptionId,
-            status: 'ACTIVE',
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            status,
+            currentPeriodStart: startDate,
+            currentPeriodEnd: endDate,
           },
         });
 
@@ -82,10 +89,10 @@ export class StripeWebhookService {
             user: {
               connect: { id: user.id },
             },
-            // Fallback to stripeSubscriptionId if payment_intent is null
-            stripePaymentIntentId: stripeSubscriptionId,
+            invoice: latestInvoice.id,
+            stripeSubscriptionId: stripeSubscriptionId,
             currency: session.currency as string,
-            status: 'SUCCEEDED',
+            status: this.getPaymentStatus(status),
             amount: session.amount_total as number,
           },
         });
@@ -101,6 +108,49 @@ export class StripeWebhookService {
     } catch (error) {
       console.log(error);
       throw error;
+    }
+  }
+
+  calculateSubscriptionEndDate(
+    startTimestamp: number,
+    interval: 'day' | 'week' | 'month' | 'year',
+    intervalCount: number,
+  ): Date {
+    const startDate = new Date(startTimestamp * 1000);
+    const endDate = new Date(startDate);
+
+    switch (interval) {
+      case 'day':
+        endDate.setDate(endDate.getDate() + intervalCount);
+        break;
+      case 'week':
+        endDate.setDate(endDate.getDate() + intervalCount * 7);
+        break;
+      case 'month':
+        endDate.setMonth(endDate.getMonth() + intervalCount);
+        break;
+      case 'year':
+        endDate.setFullYear(endDate.getFullYear() + intervalCount);
+        break;
+    }
+
+    return endDate;
+  }
+
+  getPaymentStatus(status: StripeSubscriptionStatus): PaymentStatus {
+    switch (status) {
+      case 'ACTIVE':
+        return 'SUCCEEDED';
+      case 'PAST_DUE':
+        return 'FAILED';
+      case 'UNPAID':
+        return 'FAILED';
+      case 'CANCELED':
+        return 'FAILED';
+      case 'INCOMPLETE':
+        return 'REQUIRES_PAYMENT_METHOD';
+      case 'TRIALING':
+        return 'SUCCEEDED';
     }
   }
 }
