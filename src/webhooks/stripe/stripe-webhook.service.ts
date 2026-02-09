@@ -37,6 +37,11 @@ export class StripeWebhookService {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object);
         break;
+      case 'customer.subscription.deleted':
+        await this.handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription,
+        );
+        break;
     }
 
     return { received: true };
@@ -97,6 +102,41 @@ export class StripeWebhookService {
           },
         });
 
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            aiCreditsThisMonth: 0,
+            aiLastUsedAt: null,
+          },
+        });
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    try {
+      console.log('handleSubscriptionDeleted');
+      const stripeCustomerId = subscription.customer as string;
+
+      const user = await this.db.user.findFirst({
+        where: { stripeCustomerId },
+      });
+      if (!user) return;
+
+      await this.db.$transaction(async (tx) => {
+        await tx.subscription.update({
+          where: { userId: user.id },
+          data: {
+            currentPeriodStart: null,
+            currentPeriodEnd: null,
+            stripeSubscriptionId: null,
+            status: 'CANCELED',
+            plan: { connect: { name: 'free' } },
+          },
+        });
         await tx.user.update({
           where: { id: user.id },
           data: {

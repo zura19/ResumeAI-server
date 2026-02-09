@@ -95,6 +95,47 @@ export class PaymentRepository {
     return session;
   }
 
+  async cancelSubscription(stripeCustomerId: string) {
+    const subscription = await this.stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'active',
+    });
+
+    if (subscription.data.length === 0) {
+      throw new NotFoundException('No active subscription found');
+    }
+
+    const subscriptionId = subscription.data[0].id;
+
+    const result = await this.stripe.subscriptions.cancel(subscriptionId);
+  }
+
+  async checkCancelStatus(
+    userId: string,
+    stripeCustomerId: string,
+  ): Promise<{ allowCancel: boolean }> {
+    const stripeActiveSubscription = await this.stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'active',
+    });
+
+    if (stripeActiveSubscription.data.length > 0) {
+      return { allowCancel: false };
+    }
+
+    const subscriptions = await this.db.subscription.findUnique({
+      where: { userId },
+      include: { plan: { select: { name: true } } },
+    });
+
+    const allowCancel =
+      subscriptions?.plan.name === 'free' &&
+      subscriptions.status === 'CANCELED' &&
+      !subscriptions.currentPeriodEnd;
+
+    return { allowCancel };
+  }
+
   async retrieveSession(
     stripeSessionId: string,
   ): Promise<Stripe.Response<Stripe.Checkout.Session>> {

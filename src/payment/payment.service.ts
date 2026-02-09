@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PaymentRepository } from './payment.repository';
 import { Payment, Plan, User } from '@prisma/client';
 import { CheckoutDto } from './dtos/checkout.dto';
@@ -31,6 +35,33 @@ export class PaymentService {
       );
 
       return { sessionUrl: session.url, sessionId: session.id };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async cancelSubscription(user: User) {
+    try {
+      // @ts-expect-error plan we added withot in type
+      if (user.plan === 'free')
+        throw new BadRequestException('You are already on free plan');
+
+      return await this.paymentRepo.cancelSubscription(
+        user.stripeCustomerId as string,
+      );
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async checkCancelStatus(
+    userId: string,
+    stripeCustomerId: string,
+  ): Promise<{ allowCancel: boolean }> {
+    try {
+      return this.paymentRepo.checkCancelStatus(userId, stripeCustomerId);
     } catch (error) {
       console.log(error);
       throw error;

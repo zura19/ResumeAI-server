@@ -39,6 +39,15 @@ export class PaymentController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('/cancel')
+  async cancelSubscription(
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<boolean>> {
+    await this.paymentService.cancelSubscription(user);
+    return { data: true, message: 'First stage of cancellation completed...' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('/status/:sessionId')
   async getPaymentStatus(
     @Param('sessionId') sessionId: string,
@@ -59,5 +68,17 @@ export class PaymentController {
       user,
     );
     return { data: paymentDetails };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/cancel/status')
+  async getCancelStatus(
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ allowCancel: boolean; user: User }>> {
+    const data = await this.paymentService.checkCancelStatus(
+      user.id,
+      user.stripeCustomerId as string,
+    );
+    return { data: { ...data, user } };
   }
 }
