@@ -27,11 +27,11 @@ export class ResumeService {
 
   async createResume(body: CreateResumeDto, userId: string): Promise<string> {
     try {
-      const canGenerateResume = await this.canGenerate(userId);
+      const canGenerateResume = await this.userRepo.canGenerateAI(userId);
 
       if (!canGenerateResume) {
         throw new BadRequestException(
-          `You can generate new resume only once every ${CAN_GENERATE_RESUME_IN} days. please try again later.`,
+          'You have reached the limit of resume generation for current plan. Please upgrade your plan.',
         );
       }
 
@@ -98,7 +98,7 @@ export class ResumeService {
 
       if (!canUseAi) {
         throw new BadRequestException(
-          'You have reached the limit of AI use per day. Please try again tomorrow.',
+          'You have reached the limit of AI for current plan. Please upgrade your plan.',
         );
       }
 
@@ -110,6 +110,16 @@ export class ResumeService {
       // const summary = 'Generated summary';
 
       const summary = await this.aiService.generateSummary(body);
+      if (summary) {
+        await this.db.user.update({
+          where: { id: userId },
+          data: {
+            aiCreditsThisMonth: { increment: 1 },
+            aiCreditsTotal: { increment: 1 },
+            aiLastUsedAt: new Date(),
+          },
+        });
+      }
 
       return { success: true, data: { summary } };
     } catch (error) {
@@ -126,11 +136,21 @@ export class ResumeService {
 
       if (!canUseAi) {
         throw new BadRequestException(
-          'You have reached the limit of AI use per day. Please try again tomorrow.',
+          'You have reached the limit of AI for current plan. Please upgrade your plan.',
         );
       }
 
       const feature = await this.aiService.generateProjectFeature(body);
+      if (feature) {
+        await this.db.user.update({
+          where: { id },
+          data: {
+            aiCreditsThisMonth: { increment: 1 },
+            aiCreditsTotal: { increment: 1 },
+            aiLastUsedAt: new Date(),
+          },
+        });
+      }
       return { data: { feature } };
     } catch (error) {
       console.log(error);
@@ -145,13 +165,24 @@ export class ResumeService {
 
       if (!canUseAi) {
         throw new BadRequestException(
-          'You have reached the limit of AI use per day. Please try again tomorrow.',
+          'You have reached the limit of AI for current plan. Please upgrade your plan.',
         );
       }
 
       // const responsibilitie = 'Generated responsibilitie';
       const responsibilitie =
         await this.aiService.generateExperienceResponsibilitie(body);
+
+      if (responsibilitie) {
+        await this.db.user.update({
+          where: { id },
+          data: {
+            aiCreditsThisMonth: { increment: 1 },
+            aiCreditsTotal: { increment: 1 },
+            aiLastUsedAt: new Date(),
+          },
+        });
+      }
       return { data: { responsibilitie } };
     } catch (error) {
       console.log(error);
@@ -161,33 +192,43 @@ export class ResumeService {
 
   async canGenerate(id: string): Promise<boolean> {
     try {
-      const lastResume = await this.db.resume.findFirst({
-        where: {
-          userId: id,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        select: {
-          createdAt: true,
-        },
-      });
-
-      if (!lastResume) return true;
-      const can = hasDaysPassed(lastResume.createdAt, CAN_GENERATE_RESUME_IN);
-
-      if (!can) {
-        throw new BadRequestException(
-          `You can generate new resume only once every ${CAN_GENERATE_RESUME_IN} days. please try again later.`,
-        );
-      }
-
+      const can = await this.userRepo.canGenerateAI(id);
       return can;
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
+
+  // async canGenerate(id: string): Promise<boolean> {
+  //   try {
+  //     const lastResume = await this.db.resume.findFirst({
+  //       where: {
+  //         userId: id,
+  //       },
+  //       orderBy: {
+  //         createdAt: 'desc',
+  //       },
+  //       select: {
+  //         createdAt: true,
+  //       },
+  //     });
+
+  //     if (!lastResume) return true;
+  //     const can = hasDaysPassed(lastResume.createdAt, CAN_GENERATE_RESUME_IN);
+
+  //     if (!can) {
+  //       throw new BadRequestException(
+  //         `You can generate new resume only once every ${CAN_GENERATE_RESUME_IN} days. please try again later.`,
+  //       );
+  //     }
+
+  //     return can;
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw error;
+  //   }
+  // }
 
   async getUniversities(name: string): Promise<
     {

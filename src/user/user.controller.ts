@@ -34,7 +34,7 @@ export class UserController {
   async getProfile(
     @UserDecorator() user: User,
   ): Promise<ApiResponse<ProfileResponseDto>> {
-    const data = await this.userService.getProfileData(user.id);
+    const data = await this.userService.getProfileData(user);
     return { data };
   }
 

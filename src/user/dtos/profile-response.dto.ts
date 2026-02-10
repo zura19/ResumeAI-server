@@ -11,4 +11,9 @@ export class ProfileResponseDto {
   resumes:
     | { id: string; title: string; type: ResumeType; createdAt: Date }[]
     | [];
+  totals: {
+    totalTransactions: number;
+    totalResumes: number;
+    totalAiCredits: number;
+  };
 }

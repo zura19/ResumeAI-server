@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Plan" ADD COLUMN     "aiCreditsPerMonth" INTEGER NOT NULL DEFAULT 5,
+ADD COLUMN     "totalResumes" INTEGER NOT NULL DEFAULT 1;

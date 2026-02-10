@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PlanName, Subscription, User } from '@prisma/client';
 import { RegisterDto } from 'src/auth/dtos/register.dto';
 import { isSameDay } from 'src/common/lib/isSameDay';
 import { DbService } from 'src/db/db.service';
@@ -20,81 +25,156 @@ export class UserRepository {
   }
 
   async findByEmail(email: string) {
-    return this.db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: {
         email,
       },
     });
+
+    return user;
   }
 
+  async getUserPlanByUserId(userId: string) {
+    const user = await this.db.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        subscription: { select: { plan: { select: { name: true } } } },
+      },
+    });
+
+    return user?.subscription?.plan.name;
+  }
   async create(
     data: RegisterDto,
     type: 'credentials' | 'google' = 'credentials',
-  ) {
-    return this.db.user.create({
-      data: type === 'credentials' ? data : { ...data, password: undefined },
+  ): Promise<{ user: User }> {
+    const transaction = await this.db.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: type === 'credentials' ? data : { ...data, password: undefined },
+      });
+
+      if (!user) throw new BadRequestException('User can not created');
+
+      const plan = await tx.plan.findUnique({
+        where: { name: 'free' },
+      });
+
+      if (!plan) throw new NotFoundException('Plan not found');
+
+      // Check if subscription already exists for this user
+      let subscription = await tx.subscription.findUnique({
+        where: { userId: user.id }, // Assuming userId is unique
+        include: { plan: { select: { name: true } } },
+      });
+
+      if (!subscription) {
+        subscription = await tx.subscription.create({
+          data: {
+            status: 'ACTIVE',
+            cancelAtPeriodEnd: false,
+            user: { connect: { id: user.id } },
+            plan: { connect: { id: plan.id } },
+          },
+          include: { plan: { select: { name: true } } },
+        });
+      }
+      const userWithPlan = {
+        ...user,
+        plan: subscription.plan.name,
+      };
+
+      return { user: userWithPlan };
     });
+
+    return transaction;
   }
 
   async canUseAi(id: string): Promise<boolean> {
     const LIMIT = 3;
-
-    const user = await this.getById(id);
-    if (!user) return false;
-
-    const now = new Date();
-
-    // First time ever
-    if (!user.aiLastUsedAt) {
-      await this.db.user.update({
-        where: { id },
-        data: {
-          aiUsed: 1,
-          aiLastUsedAt: now,
-        },
-      });
-
-      return true;
-    }
-
-    const sameDay = isSameDay(new Date(user.aiLastUsedAt), now);
-
-    // Same day → enforce limit
-    if (sameDay) {
-      if (user.aiUsed >= LIMIT) {
-        return false;
-      }
-
-      await this.db.user.update({
-        where: { id },
-        data: {
-          aiUsed: user.aiUsed + 1,
-          aiLastUsedAt: now,
-        },
-      });
-
-      return true;
-    }
-
-    // New day → reset counter
-    await this.db.user.update({
+    const user = await this.db.user.findUnique({
       where: { id },
-      data: {
-        aiUsed: 1,
-        aiLastUsedAt: now,
+      include: {
+        subscription: {
+          include: {
+            plan: { select: { aiCreditsPerMonth: true } },
+          },
+        },
       },
     });
+
+    const limit = user?.subscription?.plan.aiCreditsPerMonth;
+    if (!user || !limit) return false;
+
+    if (user.aiCreditsThisMonth >= limit) return false;
+
+    // const now = new Date();
+
+    // // First time ever
+    // if (!user.aiLastUsedAt) {
+    //   await this.db.user.update({
+    //     where: { id },
+    //     data: {
+    //       aiCreditsThisMonth: 1,
+    //       aiCreditsTotal: { increment: 1 },
+    //       aiLastUsedAt: now,
+    //     },
+    //   });
+
+    //   return true;
+    // }
+
+    // const sameDay = isSameDay(new Date(user.aiLastUsedAt), now);
+
+    // // Same day → enforce limit
+    // if (sameDay) {
+    //   if (user.aiCreditsThisMonth >= LIMIT) {
+    //     return false;
+    //   }
+
+    //   await this.db.user.update({
+    //     where: { id },
+    //     data: {
+    //       aiCreditsThisMonth: user.aiCreditsThisMonth + 1,
+    //       aiCreditsTotal: { increment: 1 },
+    //       aiLastUsedAt: now,
+    //     },
+    //   });
+
+    //   return true;
+    // }
+
+    // New day → reset counter
+    // await this.db.user.update({
+    //   where: { id },
+    //   data: {
+    //     aiCreditsThisMonth: 1,
+    //     aiCreditsTotal: { increment: 1 },
+    //     aiLastUsedAt: now,
+    //   },
+    // });
+
+    return true;
+  }
+
+  async canGenerateAI(id: string) {
+    const user = await this.db.user.findUnique({
+      where: { id },
+      include: {
+        resumes: { select: { id: true } },
+        subscription: {
+          include: {
+            plan: { select: { totalResumes: true } },
+          },
+        },
+      },
+    });
+    const limit = user?.subscription?.plan.totalResumes;
+
+    if (!user || !limit) return false;
+    if (user.resumes.length >= limit) return false;
 
     return true;
   }
 }
-
-// async function updateAiUsage(id: string, now: Date, number: number) {
-//   await this.db.user.update({
-//     where: { id },
-//     data: {
-//       aiUsed: number,
-//       aiLastUsedAt: now,
-//     },
-//   });
-// }
