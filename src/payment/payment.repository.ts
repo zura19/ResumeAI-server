@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentStatus, PlanName } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
@@ -74,6 +78,17 @@ export class PaymentRepository {
     const clientUrl = this.configService.get('CLIENT_URL');
     const { planName, planId, userId } = metadata;
 
+    const subscription = await this.stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'active',
+    });
+
+    if (subscription.data.length > 0) {
+      throw new BadRequestException(
+        'User already has an active subscription. Please cancel it before creating a new one.',
+      );
+    }
+
     const session = await this.stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       line_items: [
@@ -118,6 +133,8 @@ export class PaymentRepository {
       customer: stripeCustomerId,
       status: 'active',
     });
+
+    console.log(stripeActiveSubscription.data.length);
 
     if (stripeActiveSubscription.data.length > 0) {
       return { allowCancel: false };

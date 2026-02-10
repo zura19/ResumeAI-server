@@ -3,8 +3,6 @@ import { DbService } from 'src/db/db.service';
 import { UserRepository } from './user.repository';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { ProfileResponseDto } from './dtos/profile-response.dto';
-import { generate } from 'rxjs';
-import { create } from 'domain';
 import { User } from '@prisma/client';
 
 @Injectable()
@@ -49,12 +47,7 @@ export class UserService {
   }
 
   async getProfileData(user: User): Promise<ProfileResponseDto> {
-    // const user = await this.userRepo.getById(id);
     const id = user.id;
-
-    if (!user) {
-      throw new NotFoundException(`User with id: ${id} not found`);
-    }
 
     const userData = {
       ...user,
@@ -73,6 +66,7 @@ export class UserService {
       await this.db.payment.aggregate({
         where: {
           userId: id,
+          status: 'SUCCEEDED',
         },
         _sum: {
           amount: true,

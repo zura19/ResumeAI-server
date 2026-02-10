@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   PaymentStatus,
@@ -37,6 +41,15 @@ export class StripeWebhookService {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object);
         break;
+
+      case 'invoice.payment_succeeded':
+        await this.handlePaymentSucceeded(event.data.object);
+        break;
+
+      case 'invoice.payment_failed':
+        await this.handlePaymentFailed(event.data.object);
+        break;
+
       case 'customer.subscription.deleted':
         await this.handleSubscriptionDeleted(
           event.data.object as Stripe.Subscription,
@@ -66,8 +79,6 @@ export class StripeWebhookService {
         // @ts-expect-error stripeSubscription
         stripeSubscription?.plan?.interval_count,
       );
-      const status =
-        stripeSubscription.status.toLocaleUpperCase() as StripeSubscriptionStatus;
       const planId = session.metadata?.planId as string;
 
       const user = await this.db.user.findFirst({
@@ -80,25 +91,84 @@ export class StripeWebhookService {
         await tx.subscription.update({
           where: { userId: user.id },
           data: {
-            plan: { connect: { id: planId } },
-            stripeSubscriptionId,
-            status,
-            currentPeriodStart: startDate,
-            currentPeriodEnd: endDate,
+            status: 'TRIALING',
           },
         });
 
         await tx.payment.create({
           data: {
-            // Use 'connect' to satisfy the "Argument user is missing" error
             user: {
               connect: { id: user.id },
             },
             invoice: latestInvoice.id,
-            stripeSubscriptionId: stripeSubscriptionId,
+            stripeSubscriptionId,
             currency: session.currency as string,
-            status: this.getPaymentStatus(status),
+            status: 'PROCESSING',
             amount: session.amount_total as number,
+          },
+        });
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async handlePaymentSucceeded(invoice: Stripe.Invoice) {
+    try {
+      const stripeSubscriptionId = invoice.parent?.subscription_details
+        ?.subscription as string;
+      if (!stripeSubscriptionId)
+        throw new BadRequestException('No subscription id');
+
+      const stripeCustomerId = invoice.customer as string;
+      const user = await this.db.user.findFirst({
+        where: { stripeCustomerId },
+      });
+      if (!user) throw new NotFoundException('User not found');
+
+      console.log(stripeSubscriptionId);
+      console.log(user);
+
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(
+        stripeSubscriptionId,
+        { expand: ['items.data.price'] },
+      );
+      const priceId = stripeSubscription.items.data[0].price.id;
+
+      const plan = await this.db.plan.findFirst({
+        where: { stripePriceId: priceId },
+      });
+      if (!plan) throw new NotFoundException('Plan not found');
+
+      console.log('stripeSubscriptionId:', stripeSubscriptionId);
+      console.log('plan:', plan);
+      console.log('user:', user);
+
+      const startDate = new Date(stripeSubscription.start_date * 1000);
+      const endDate = this.calculateSubscriptionEndDate(
+        stripeSubscription.start_date,
+        // @ts-expect-error stripeSubscription
+        stripeSubscription?.plan?.interval,
+        // @ts-expect-error stripeSubscription
+        stripeSubscription?.plan?.interval_count,
+      );
+
+      await this.db.$transaction(async (tx) => {
+        await tx.subscription.update({
+          where: { userId: user.id },
+          data: {
+            plan: { connect: { id: plan.id } },
+            status: 'ACTIVE',
+            stripeSubscriptionId,
+            currentPeriodStart: startDate,
+            currentPeriodEnd: endDate,
+          },
+        });
+        await tx.payment.update({
+          where: { stripeSubscriptionId },
+          data: {
+            status: 'SUCCEEDED',
           },
         });
 
@@ -106,7 +176,39 @@ export class StripeWebhookService {
           where: { id: user.id },
           data: {
             aiCreditsThisMonth: 0,
-            aiLastUsedAt: null,
+            aiLastUsedAt: new Date(),
+          },
+        });
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async handlePaymentFailed(invoice: Stripe.Invoice) {
+    try {
+      console.log('handlePaymentFailed');
+      const stripeCustomerId = invoice.customer as string;
+      const stripeSubscriptionId = invoice.parent?.subscription_details
+        ?.subscription as string;
+
+      if (!stripeSubscriptionId)
+        throw new BadRequestException('No subscription id');
+
+      console.log(stripeSubscriptionId);
+
+      await this.db.$transaction(async (tx) => {
+        await tx.subscription.update({
+          where: { stripeSubscriptionId },
+          data: {
+            status: 'ACTIVE',
+          },
+        });
+        await tx.payment.update({
+          where: { stripeSubscriptionId },
+          data: {
+            status: 'FAILED',
           },
         });
       });
