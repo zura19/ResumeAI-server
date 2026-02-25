@@ -177,4 +177,66 @@ export class AdminRepository {
       take: limit,
     });
   }
+
+  async getMonthlyRevenue(year: number): Promise<{ [month: string]: number }> {
+    const payments = await this.db.payment.findMany({
+      where: {
+        status: 'SUCCEEDED',
+        createdAt: {
+          gte: new Date(year, 0, 1),
+          lt: new Date(year + 1, 0, 1),
+        },
+      },
+      select: {
+        amount: true,
+        createdAt: true,
+      },
+    });
+    const monthlyRevenue: { [month: string]: number } = {};
+
+    payments.forEach((p) => {
+      const month = p.createdAt.toISOString().slice(0, 7); // Get YYYY-MM
+      if (!monthlyRevenue[month]) {
+        monthlyRevenue[month] = 0;
+      }
+      monthlyRevenue[month] += p.amount;
+    });
+
+    return monthlyRevenue;
+  }
+
+  async getMonthlyUsers(year: number): Promise<{ [month: string]: number }> {
+    const users = await this.db.user.findMany({
+      select: {
+        createdAt: true,
+      },
+      where: {
+        createdAt: {
+          gte: new Date(year, 0, 1),
+          lt: new Date(year + 1, 0, 1),
+        },
+      },
+    });
+    const monthlyUsers: { [month: string]: number } = {};
+    users.forEach((user) => {
+      const month = user.createdAt.toISOString().slice(0, 7); // Get YYYY-MM
+      if (!monthlyUsers[month]) {
+        monthlyUsers[month] = 0;
+      }
+      monthlyUsers[month]++;
+    });
+    return monthlyUsers;
+  }
+
+  fakeMonths(year: number) {
+    const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const fakeMonths: { [key: string]: number } = {};
+
+    numbers.forEach((num) => {
+      const month = `${year}-${num.toString().padStart(2, '0')}`;
+      fakeMonths[month] = 0;
+    });
+
+    return fakeMonths;
+  }
 }

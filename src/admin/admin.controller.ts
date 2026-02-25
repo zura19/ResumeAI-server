@@ -66,4 +66,17 @@ export class AdminController {
       throw error;
     }
   }
+
+  @Get('/monthly-stats')
+  async getMonthlyRevenueAndUsers(
+    @Query() query: { year: string },
+  ): Promise<ApiResponse<{ month: string; revenue: number; users: number }[]>> {
+    try {
+      const arr = await this.adminService.getMonthlyRevenueAndUsers(query.year);
+      return { data: arr };
+    } catch (error) {
+      console.error('Error fetching monthly revenue and users:', error);
+      throw error;
+    }
+  }
 }

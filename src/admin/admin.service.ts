@@ -84,4 +84,32 @@ export class AdminService {
       throw error;
     }
   }
+
+  async getMonthlyRevenueAndUsers(
+    year: string,
+  ): Promise<{ month: string; revenue: number; users: number }[]> {
+    try {
+      const yearInt = parseInt(year);
+      const [monthlyRevenue, monthlyUsers] = await Promise.all([
+        this.adminRepo.getMonthlyRevenue(yearInt),
+        this.adminRepo.getMonthlyUsers(yearInt),
+      ]);
+
+      const allMonths = new Set([
+        ...Object.keys(this.adminRepo.fakeMonths(yearInt)),
+        ...Object.keys(monthlyRevenue),
+        ...Object.keys(monthlyUsers),
+      ]);
+
+      console.log(allMonths);
+      return Array.from(allMonths).map((month) => ({
+        month,
+        revenue: monthlyRevenue[month] || 0,
+        users: monthlyUsers[month] || 0,
+      }));
+    } catch (error) {
+      console.error('Error fetching monthly revenue and users:', error);
+      throw error;
+    }
+  }
 }
