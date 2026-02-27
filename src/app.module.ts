@@ -14,6 +14,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { PaymentModule } from './payment/payment.module';
 import { StripeWebhookModule } from './webhooks/stripe/stripe-webhook.module';
 import { AdminModule } from './admin/admin.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AdminModule } from './admin/admin.module';
     PaymentModule,
     StripeWebhookModule,
     AdminModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [

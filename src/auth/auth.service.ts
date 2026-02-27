@@ -13,6 +13,7 @@ import { LoginDto } from './dtos/login.dto';
 import { Response } from 'express';
 import { PlanName, User } from '@prisma/client';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private userRepo: UserRepository,
     private authRepo: AuthRepository,
     private subscriptionRepo: SubscriptionRepository,
+    private email: EmailService,
   ) {}
 
   async register(body: RegisterDto): Promise<UserWithoutPassword> {
@@ -36,6 +38,13 @@ export class AuthService {
         ...body,
         password: hashedPassword,
       });
+
+      if (user) {
+        await this.email.sendWelcomeEmail({
+          email: 'zuramanagadze10@gmail.com',
+          firstName: user.firstName,
+        });
+      }
 
       return {
         ...user,
