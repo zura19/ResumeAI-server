@@ -4,6 +4,7 @@ import { UserRepository } from './user.repository';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { ProfileResponseDto } from './dtos/profile-response.dto';
 import { User } from '@prisma/client';
+import { UpdateUserDto } from './dtos/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -18,6 +19,34 @@ export class UserService {
       if (!user) {
         throw new NotFoundException(`User with id: ${id} not found`);
       }
+      return {
+        ...user,
+        password: undefined,
+      };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async updateUser(
+    id: string,
+    body: UpdateUserDto,
+  ): Promise<UserWithoutPassword> {
+    try {
+      const user = await this.db.user.update({
+        where: {
+          id,
+        },
+        data: {
+          firstName: body.firstName,
+          lastName: body.lastName,
+          email: body.email,
+          phone: body.phone,
+          address: body.address,
+          profession: body.profession,
+        },
+      });
       return {
         ...user,
         password: undefined,

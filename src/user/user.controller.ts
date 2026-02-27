@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
@@ -6,6 +6,7 @@ import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { type User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { ProfileResponseDto } from './dtos/profile-response.dto';
+import { UpdateUserDto } from './dtos/update-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -36,6 +37,19 @@ export class UserController {
   ): Promise<ApiResponse<ProfileResponseDto>> {
     const data = await this.userService.getProfileData(user);
     return { data };
+  }
+
+  @Put('/profile')
+  @UseGuards(AuthGuard('jwt'))
+  async updateUser(
+    @UserDecorator() currentUser: User,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
+    const user = await this.userService.updateUser(
+      currentUser.id,
+      updateUserDto,
+    );
+    return { data: null, message: 'User updated successfully' };
   }
 
   @UseGuards(AuthGuard('jwt'))
