@@ -1,9 +1,26 @@
 import { Global, Module } from '@nestjs/common';
 import { EmailService } from './email.service';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { EmailController } from './email.controller';
 
 @Global()
 @Module({
+  imports: [
+    MailerModule.forRoot({
+      transport: {
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      },
+      defaults: {
+        from: 'ResumeAI <no-replay@example.com>',
+      },
+    }),
+  ],
   providers: [EmailService],
   exports: [EmailService],
+  controllers: [EmailController],
 })
 export class EmailModule {}
