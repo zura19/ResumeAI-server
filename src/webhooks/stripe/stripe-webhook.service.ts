@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import { Request } from 'express';
 import { DbService } from 'src/db/db.service';
+import { EmailService } from 'src/email/email.service';
 import { PaymentRepository } from 'src/payment/payment.repository';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 import Stripe from 'stripe';
@@ -24,6 +25,7 @@ export class StripeWebhookService {
     private subscriptionRepo: SubscriptionRepository,
     private paymentRepo: PaymentRepository,
     private db: DbService,
+    private email: EmailService,
   ) {
     this.stripe = new Stripe(config.get('STRIPE_SECRET_KEY')!, {
       apiVersion: '2026-01-28.clover',
@@ -179,6 +181,15 @@ export class StripeWebhookService {
             aiLastUsedAt: new Date(),
           },
         });
+
+        await this.email.sendPaymentConfirmationEmail(
+          invoice.customer_email as string,
+          {
+            Plan: plan.name,
+            amount: invoice.amount_paid / 100,
+            endDate,
+          },
+        );
       });
     } catch (error) {
       console.log(error);
@@ -228,6 +239,12 @@ export class StripeWebhookService {
       });
       if (!user) return;
 
+      const prevPlan = await this.db.subscription.findFirst({
+        where: { userId: user.id },
+        select: { plan: true },
+      });
+      const prevPlanName = prevPlan?.plan?.name;
+
       await this.db.$transaction(async (tx) => {
         await tx.subscription.update({
           where: { userId: user.id },
@@ -245,6 +262,10 @@ export class StripeWebhookService {
             aiCreditsThisMonth: 0,
             aiLastUsedAt: null,
           },
+        });
+
+        await this.email.sendSubscriptionCanceledEmail(user.email, {
+          Plan: prevPlanName as PlanName,
         });
       });
     } catch (error) {
