@@ -41,7 +41,7 @@ export class AuthService {
 
       if (user) {
         await this.email.sendWelcomeEmail({
-          email: 'zuramanagadze10@gmail.com',
+          email: user.email,
           firstName: user.firstName,
         });
       }

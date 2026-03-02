@@ -9,6 +9,9 @@ import { EmailController } from './email.controller';
     MailerModule.forRoot({
       transport: {
         service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: process.env.NODE_ENV === 'prod',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD,
