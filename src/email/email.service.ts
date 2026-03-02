@@ -17,10 +17,7 @@ export class EmailService {
     await this.mailerService.sendMail({
       to,
       subject: 'Welcome to ResumeAI!',
-      html: Welcometemplate.replaceAll('{{NAME}}', 'User').replaceAll(
-        '{{LINK}}',
-        this.configService.get<string>('CLIENT_URL')!,
-      ),
+      html: `<h1>${Math.random() * 100}, is the random number</h1>`,
     });
   }
 
