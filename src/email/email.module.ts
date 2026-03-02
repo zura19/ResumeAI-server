@@ -8,15 +8,20 @@ import { EmailController } from './email.controller';
   imports: [
     MailerModule.forRoot({
       transport: {
-        service: 'gmail',
-        secure: true,
+        host: 'smtp.gmail.com',
+        port: process.env.NODE_ENV === 'dev' ? 587 : 465,
+        secure: process.env.NODE_ENV !== 'dev',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD,
         },
+        tls: {
+          rejectUnauthorized: false,
+        },
       },
+
       defaults: {
-        from: `ResumeAI ${process.env.EMAIL_USER} `,
+        from: `"ResumeAI" <${process.env.EMAIL_USER}>`,
       },
     }),
   ],
