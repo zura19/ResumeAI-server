@@ -9,7 +9,11 @@ export class TotalsResponseDto {
     thisMonth: number;
     lastMonth: number;
   };
-  monthlyRevenue: number;
+  totalRevenue: {
+    total: number;
+    thisMonth: number;
+    lastMonth: number;
+  };
   generatedResumes: {
     total: number;
     thisMonth: number;
