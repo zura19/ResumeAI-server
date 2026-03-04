@@ -128,9 +128,9 @@ export class AdminRepository {
 
   async getPayments(limit: number = 10, lastId: string | null = null) {
     return this.db.payment.findMany({
-      where: {
-        status: 'SUCCEEDED',
-      },
+      // where: {
+      //   status: 'SUCCEEDED',
+      // },
       cursor: lastId ? { id: lastId } : undefined,
       skip: lastId ? 1 : undefined,
       orderBy: {
