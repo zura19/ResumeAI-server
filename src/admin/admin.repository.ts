@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PlanName } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
+import { TotalsResponseDto } from './dtos/totals-response.dto';
 
 @Injectable()
 export class AdminRepository {
@@ -15,11 +16,7 @@ export class AdminRepository {
     return result;
   }
 
-  async countTotalUsers(): Promise<{
-    total: number;
-    thisMonth: number;
-    lastMonth: number;
-  }> {
+  async countTotalUsers(): Promise<TotalsResponseDto['users']> {
     const [total, thisMonth, lastMonth] = await Promise.all([
       this.db.user.count(),
       this.db.user.count(this.countThisMonth()),
@@ -33,11 +30,7 @@ export class AdminRepository {
     };
   }
 
-  async countTotalSubscriptions(): Promise<{
-    total: number;
-    thisMonth: number;
-    lastMonth: number;
-  }> {
+  async countTotalSubscriptions(): Promise<TotalsResponseDto['subscriptions']> {
     const [result, thisMonth, lastMonth] = await Promise.all([
       this.db.subscription.count({
         where: {
@@ -55,16 +48,43 @@ export class AdminRepository {
       lastMonth,
     };
   }
-  async monthlyRevenue(): Promise<number> {
-    const val = await this.db.payment.aggregate({
-      where: {
-        status: 'SUCCEEDED',
-      },
-      _sum: {
-        amount: true,
-      },
-    });
-    return val._sum.amount || 0;
+  async countTotalRevenue(): Promise<TotalsResponseDto['totalRevenue']> {
+    const [total, thisMonth, lastMonth] = await Promise.all([
+      await this.db.payment.aggregate({
+        where: {
+          status: 'SUCCEEDED',
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+
+      await this.db.payment.aggregate({
+        where: {
+          status: 'SUCCEEDED',
+          ...this.countThisMonth().where,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+
+      await this.db.payment.aggregate({
+        where: {
+          status: 'SUCCEEDED',
+          ...this.countLastMonth().where,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    return {
+      total: total._sum.amount || 0,
+      thisMonth: thisMonth._sum.amount || 0,
+      lastMonth: lastMonth._sum.amount || 0,
+    };
   }
 
   async countGeneratedResumes(): Promise<{
@@ -114,7 +134,6 @@ export class AdminRepository {
     const now = new Date();
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
     return {
       where: {
@@ -128,9 +147,6 @@ export class AdminRepository {
 
   async getPayments(limit: number = 10, lastId: string | null = null) {
     return this.db.payment.findMany({
-      where: {
-        status: 'SUCCEEDED',
-      },
       cursor: lastId ? { id: lastId } : undefined,
       skip: lastId ? 1 : undefined,
       orderBy: {

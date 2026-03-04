@@ -35,13 +35,13 @@ export class AdminService {
       const [
         users,
         subscriptions,
-        monthlyRevenue,
+        totalRevenue,
         generatedResumes,
         totalAiCreditsUsed,
       ] = await Promise.all([
         this.adminRepo.countTotalUsers(),
         this.adminRepo.countTotalSubscriptions(),
-        this.adminRepo.monthlyRevenue(),
+        this.adminRepo.countTotalRevenue(),
         this.adminRepo.countGeneratedResumes(),
         this.adminRepo.countTotalAiCreditsUsed(),
       ]);
@@ -49,7 +49,7 @@ export class AdminService {
       return {
         users,
         subscriptions,
-        monthlyRevenue,
+        totalRevenue,
         generatedResumes,
         totalAiCreditsUsed,
       };
