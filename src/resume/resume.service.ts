@@ -36,15 +36,19 @@ export class ResumeService {
       }
 
       const generatedResume = await this.aiService.generateResume(body);
+      console.log(generatedResume);
       const resume = await this.resumeRepository.createResume(
         body,
-        generatedResume,
+        {
+          aiModel: generatedResume.aiModel,
+          content: generatedResume.content,
+        },
         userId,
       );
 
       let res;
       try {
-        res = JSON.parse(generatedResume || '');
+        res = JSON.parse(generatedResume.content || '');
       } catch (error) {
         throw new Error('Invalid JSON format in generatedResume');
       }

@@ -47,12 +47,16 @@ export class AiService {
     }
   }
 
-  async generateResume(resumeData: CreateResumeDto): Promise<string | null> {
+  async generateResume(resumeData: CreateResumeDto): Promise<{
+    aiModel: string;
+    content: string | null;
+  }> {
     try {
+      const model = 'llama-3.1-8b-instant';
       const prompt = this.AiRepo.buildResumePrompt(resumeData);
 
       const response = await this.ai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model,
         messages: [
           { role: 'system', content: 'You are an expert resume writer' },
           { role: 'user', content: prompt },
@@ -61,7 +65,11 @@ export class AiService {
 
       console.log(response);
 
-      return response.choices[0].message.content;
+      // return response.choices[0].message.content;
+      return {
+        aiModel: model,
+        content: response.choices[0].message.content,
+      };
     } catch (error) {
       console.error('Error communicating with AI:', error);
       throw new BadRequestException(

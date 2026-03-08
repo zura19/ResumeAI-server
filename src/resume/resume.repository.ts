@@ -8,7 +8,10 @@ export class ResumeRepository {
 
   async createResume(
     body: CreateResumeDto,
-    generated: string | null,
+    generated: {
+      aiModel: string;
+      content: string | null;
+    },
     userId: string,
   ) {
     const { personalInfo, education, experience, skills, projects } = body;
@@ -18,7 +21,7 @@ export class ResumeRepository {
         data: {
           userId,
           type: body.type,
-          generatedResume: generated || '',
+          // generatedResume: generated || '',
           personalInfo: {
             create: {
               fullName: personalInfo.fullName,
@@ -75,6 +78,14 @@ export class ResumeRepository {
         },
       });
 
+      await tx.generatedResume.create({
+        data: {
+          resumeId: resume.id,
+          content: generated.content || '',
+          aiModel: generated.aiModel,
+        },
+      });
+
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -94,20 +105,16 @@ export class ResumeRepository {
   async getResume(id: string) {
     return this.db.resume.findUnique({
       where: { id },
-      // include: {
-      //   personalInfo: true,
-      //   skills: true,
-      //   education: true,
-      //   experiences: true,
-      //   projects: true,
-      // },
+      include: {
+        generatedResumes: true,
+      },
     });
   }
 
   async updateGeneratedResume(id: string, generatedJSON: string) {
-    return this.db.resume.update({
+    return this.db.generatedResume.update({
       where: { id },
-      data: { generatedResume: generatedJSON },
+      data: { content: generatedJSON },
     });
   }
 }
