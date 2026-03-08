@@ -13,12 +13,12 @@ You are a professional resume writer.
 Using the information below, generate a resume.
 
 RULES:
-- Return ONLY valid JSON
+- Your response MUST be valid JSON
 - Do NOT include markdown
 - Do NOT include '''json
 - Do NOT include explanations
 - Do NOT invent experience
-- DO NOT include comments like: // something
+- ABSOLUTELY NEVER include comments like // or /* */ because it breaks JSON parsing.
 
 
 JSON FORMAT:
@@ -139,8 +139,65 @@ ${JSON.stringify(data, null, 2)}
 
 `;
   }
-}
 
+  updateResumeWithUserPrompt(resume: string, prompt: string): string {
+    return `
+You are a professional resume writer.
+Using the prompt below, update a resume.
+
+resume you SHOULD update:
+${resume}
+
+RULES:
+- DO NOT change parts that are not in the prompt
+- Your response MUST be valid JSON
+- DO NOT include markdown
+- DO NOT include '''json
+- DO NOT include explanations
+- DO NOT invent experience
+- ABSOLUTELY NEVER include comments like // or /* */ because it breaks JSON parsing.
+
+user prompt:
+${prompt}
+
+
+JSON FORMAT:
+{
+  "personalInfo": {
+    "fullName": string,
+    "email": string,
+    "phone": string,
+    "address": string
+  },
+  "summary": string,
+  "skills": {
+    "technical": string[],
+    "soft": string[]
+    "languages": string[],
+  },
+  "education": {
+    "degree": string,
+    "fieldOfStudy": string,
+    "university": string,
+    "startDate": string,
+    "endDate": string
+  }[],
+  "experience": {
+    "company": string,
+    "position": string,
+    "startDate": string,
+    "endDate": string,
+    "responsibilities": string[]
+  }[],
+  "projects": {
+    "title": string,
+    "technologies": string[],
+    "features": string[],
+  }[]
+}
+`;
+  }
+}
 // Create a modern, ATS-friendly resume using the information below.
 // Improve wording, make it professional, and keep it concise.
 // Do NOT invent fake experience.

@@ -117,4 +117,18 @@ export class ResumeRepository {
       data: { content: generatedJSON },
     });
   }
+
+  async createGeneratedResume(
+    resumeId: string,
+    generatedJSON: string,
+    aiModel: string,
+  ) {
+    return this.db.generatedResume.create({
+      data: {
+        resumeId,
+        content: generatedJSON,
+        aiModel: aiModel,
+      },
+    });
+  }
 }

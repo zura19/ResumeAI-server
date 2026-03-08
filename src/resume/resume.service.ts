@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Project, Resume } from '@prisma/client';
+import { GeneratedResume, Project, Resume } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { ResumeRepository } from './resume.repository';
@@ -90,6 +90,49 @@ export class ResumeService {
       );
 
       return { success: true, data: updatedResume };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async createAnotherVersionOfResume(
+    id: string,
+    prompt: string,
+    userId: string,
+  ): Promise<GeneratedResume> {
+    try {
+      // const canUseAi = await this.userRepo.canUseAi(id);
+
+      // if (!canUseAi) {
+      //   throw new BadRequestException(
+      //     'You have reached the limit of AI for current plan. Please upgrade your plan.',
+      //   );
+      // }
+      const resume = await this.resumeRepository.getResume(id);
+      if (!resume) {
+        throw new NotFoundException(`Resume with id: ${id} not found.`);
+      }
+
+      if (resume.userId !== userId) {
+        throw new BadRequestException('You are not the owner of this resume.');
+      }
+
+      const latestGeneratedResume =
+        resume.generatedResumes[resume.generatedResumes.length - 1];
+
+      const updatedResume = await this.aiService.updateResume(
+        latestGeneratedResume?.content as string,
+        prompt,
+      );
+
+      const generatedResume = await this.resumeRepository.createGeneratedResume(
+        id,
+        updatedResume.content as string,
+        updatedResume.aiModel,
+      );
+
+      return generatedResume;
     } catch (error) {
       console.log(error);
       throw error;

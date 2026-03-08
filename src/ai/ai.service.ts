@@ -65,10 +65,45 @@ export class AiService {
 
       console.log(response);
 
-      // return response.choices[0].message.content;
+      const raw = response.choices[0].message.content as string;
       return {
         aiModel: model,
-        content: response.choices[0].message.content,
+        content: this.sanitizeJsonResponse(raw),
+      };
+    } catch (error) {
+      console.error('Error communicating with AI:', error);
+      throw new BadRequestException(
+        error.message || 'Failed to get response from AI service',
+      );
+    }
+  }
+
+  async updateResume(
+    resume: string,
+    userPrompt: string,
+  ): Promise<{
+    aiModel: string;
+    content: string | null;
+  }> {
+    try {
+      const model = 'llama-3.1-8b-instant';
+      const prompt = this.AiRepo.updateResumeWithUserPrompt(resume, userPrompt);
+
+      const response = await this.ai.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: 'You are an expert resume writer' },
+          { role: 'user', content: prompt },
+        ],
+      });
+
+      console.log(response);
+
+      const raw = response.choices[0].message.content as string;
+
+      return {
+        aiModel: model,
+        content: this.sanitizeJsonResponse(raw),
       };
     } catch (error) {
       console.error('Error communicating with AI:', error);
@@ -145,5 +180,13 @@ export class AiService {
         error.message || 'Failed to get response from AI service',
       );
     }
+  }
+
+  sanitizeJsonResponse(text: string) {
+    return text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .replace(/\/\/.*$/gm, '') // remove comments
+      .trim();
   }
 }
