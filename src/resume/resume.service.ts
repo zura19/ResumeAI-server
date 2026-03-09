@@ -100,7 +100,7 @@ export class ResumeService {
     id: string,
     prompt: string,
     userId: string,
-  ): Promise<GeneratedResume> {
+  ): Promise<{ id: string; content: string | null }> {
     try {
       // const canUseAi = await this.userRepo.canUseAi(id);
 
@@ -128,11 +128,15 @@ export class ResumeService {
 
       const generatedResume = await this.resumeRepository.createGeneratedResume(
         id,
-        updatedResume.content as string,
+        updatedResume.resume as string,
         updatedResume.aiModel,
       );
 
-      return generatedResume;
+      return {
+        id: generatedResume.id,
+        content: updatedResume.content,
+        // aiModel: generatedResume.aiModel,
+      };
     } catch (error) {
       console.log(error);
       throw error;

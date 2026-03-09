@@ -84,6 +84,7 @@ export class AiService {
   ): Promise<{
     aiModel: string;
     content: string | null;
+    resume: string | null;
   }> {
     try {
       const model = 'llama-3.1-8b-instant';
@@ -101,9 +102,20 @@ export class AiService {
 
       const raw = response.choices[0].message.content as string;
 
+      const parsed: { content: string; resume: string } = JSON.parse(
+        this.sanitizeJsonResponse(raw) as any,
+      );
+
+      console.log({
+        aiModel: model,
+        content: parsed.content,
+        resume: parsed.resume,
+      });
+
       return {
         aiModel: model,
-        content: this.sanitizeJsonResponse(raw),
+        content: parsed.content,
+        resume: JSON.stringify(parsed.resume),
       };
     } catch (error) {
       console.error('Error communicating with AI:', error);

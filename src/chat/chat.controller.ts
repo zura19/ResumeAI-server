@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtGuard } from 'src/common/guards/jwt.guard';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
-import type { Chat, User } from '@prisma/client';
+import type { Chat, Message, User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { ChatService } from './chat.service';
 
@@ -26,7 +26,7 @@ export class ChatController {
     @Param('resumeId') resumeId: string,
     @Body() body: SendMessageDto,
     @UserDecorator() user: User,
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<Message>> {
     const data = await this.chatService.sendMessage(
       resumeId,
       body.message,

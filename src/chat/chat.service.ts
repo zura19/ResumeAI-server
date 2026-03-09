@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ResumeService } from 'src/resume/resume.service';
 import { ChatRepository } from './chat.repository';
-import { Chat, User } from '@prisma/client';
+import { Chat, GeneratedResume, Message, User } from '@prisma/client';
 
 @Injectable()
 export class ChatService {
@@ -27,7 +27,7 @@ export class ChatService {
     return chat;
   }
 
-  async sendMessage(id: string, message: string, user: User) {
+  async sendMessage(id: string, message: string, user: User): Promise<Message> {
     const isChatExists = await this.chatRepository.checkChatExists(id);
     if (!isChatExists) {
       throw new NotFoundException('Chat not found');
@@ -46,12 +46,12 @@ export class ChatService {
       message,
     );
 
-    await this.chatRepository.saveAiMessage(
+    const aiMessage = await this.chatRepository.saveAiMessage(
       isChatExists.id,
       generatedResume.id,
-      'AI generated resume',
+      generatedResume.content as string,
     );
 
-    return generatedResume;
+    return aiMessage;
   }
 }

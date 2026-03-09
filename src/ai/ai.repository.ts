@@ -195,6 +195,14 @@ JSON FORMAT:
     "features": string[],
   }[]
 }
+
+also include content about what you changed
+
+FINAL data that i want:
+{
+content:string,
+reusme:JSON
+}
 `;
   }
 }
