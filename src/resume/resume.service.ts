@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { GeneratedResume, Project, Resume } from '@prisma/client';
+import { GeneratedResume, Project, Resume, User } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { ResumeRepository } from './resume.repository';
@@ -52,7 +52,6 @@ export class ResumeService {
       } catch (error) {
         throw new Error('Invalid JSON format in generatedResume');
       }
-      // console.log(paresd);
 
       return resume.id;
     } catch (error) {
@@ -61,11 +60,10 @@ export class ResumeService {
     }
   }
 
-  async getResume(id: string): Promise<Resume> {
+  async getResume(id: string, user: User): Promise<Resume> {
     try {
       const resume = await this.resumeRepository.getResume(id);
-
-      if (!resume) {
+      if (!resume || resume.userId !== user.id) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
       }
 
@@ -76,16 +74,37 @@ export class ResumeService {
     }
   }
 
-  async updateResume(id: string, body: GeneratedResumeDto) {
+  async updateResume(
+    id: string,
+    generatedResumeId: string,
+    body: GeneratedResumeDto,
+    user: User,
+  ) {
     try {
       const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
+
+      if (existingResume?.userId !== user.id) {
+        throw new BadRequestException(
+          'You are not authorized to update this resume.',
+        );
+      }
 
       if (!existingResume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
       }
 
+      const existingGeneratedResume = existingResume.generatedResumes.find(
+        (g) => g.id === generatedResumeId,
+      );
+
+      if (!existingGeneratedResume) {
+        throw new NotFoundException(
+          `Generated resume with id: ${generatedResumeId} not found for resume with id: ${id}.`,
+        );
+      }
+
       const updatedResume = await this.resumeRepository.updateGeneratedResume(
-        id,
+        generatedResumeId,
         JSON.stringify(body),
       );
 
