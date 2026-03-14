@@ -118,6 +118,14 @@ export class ResumeRepository {
     });
   }
 
+  async deleteResume(id: string) {
+    return this.db.resume.delete({ where: { id } });
+  }
+
+  async deleteGeneratedResume(id: string) {
+    return this.db.generatedResume.delete({ where: { id } });
+  }
+
   async createGeneratedResume(
     resumeId: string,
     generatedJSON: string,

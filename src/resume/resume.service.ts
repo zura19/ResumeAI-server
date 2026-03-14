@@ -161,6 +161,52 @@ export class ResumeService {
     }
   }
 
+  async deleteResume(id: string, userId: string) {
+    try {
+      const resume = await this.resumeRepository.getResume(id);
+
+      if (!resume || resume.userId !== userId) {
+        throw new NotFoundException(
+          `Resume with id: ${id} not found or you are not the owner of this resume.`,
+        );
+      }
+
+      await this.resumeRepository.deleteResume(id);
+      return { success: true };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async deleteGeneratedResume(
+    generatedResumeId: string,
+    resumeId: string,
+    userId: string,
+  ) {
+    try {
+      const resume = await this.resumeRepository.getResume(resumeId);
+
+      if (!resume || resume.userId !== userId) {
+        throw new NotFoundException(
+          `Resume with id: ${resumeId} not found or you are not the owner of this resume.`,
+        );
+      }
+
+      if (!resume.generatedResumes.find((g) => g.id === generatedResumeId)) {
+        throw new NotFoundException(
+          `Generated resume with id: ${generatedResumeId} not found for resume with id: ${resumeId}.`,
+        );
+      }
+
+      await this.resumeRepository.deleteGeneratedResume(generatedResumeId);
+      return { success: true };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
   async generateSummary(id: string, body: GeneratedResumeDto, userId: string) {
     try {
       const canUseAi = await this.userRepo.canUseAi(userId);

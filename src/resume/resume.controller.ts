@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -45,6 +46,16 @@ export class ResumeController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  async deleteResume(
+    @Param('id') id: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<null>> {
+    await this.resumeService.deleteResume(id, user.id);
+    return { data: null, message: 'Resume deleted successfully' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Put(':id/:generatedResumeId')
   async update(
     @Param('id') id: string,
@@ -58,6 +69,21 @@ export class ResumeController {
       body,
       user,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('generated/:id/:generatedResumeId')
+  async deleteGeneratedResume(
+    @Param('id') id: string,
+    @Param('generatedResumeId') generatedResumeId: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<null>> {
+    await this.resumeService.deleteGeneratedResume(
+      generatedResumeId,
+      id,
+      user.id,
+    );
+    return { data: null, message: 'Resume version deleted successfully' };
   }
 
   @UseGuards(AuthGuard('jwt'))

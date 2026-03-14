@@ -11,7 +11,7 @@ import { ProGuard } from 'src/common/guards/pro.guard';
 export class ChatController {
   constructor(private chatService: ChatService) {}
 
-  @UseGuards(JwtGuard, ProGuard)
+  @UseGuards(JwtGuard)
   @Get('/:resumeId')
   async getChat(
     @Param('resumeId') resumeId: string,
@@ -21,7 +21,7 @@ export class ChatController {
     return { data };
   }
 
-  @UseGuards(JwtGuard, ProGuard)
+  @UseGuards(JwtGuard)
   @Post('/:resumeId')
   async sendMessage(
     @Param('resumeId') resumeId: string,
