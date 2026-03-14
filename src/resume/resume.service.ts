@@ -143,6 +143,7 @@ export class ResumeService {
       const updatedResume = await this.aiService.updateResume(
         latestGeneratedResume?.content as string,
         prompt,
+        userId,
       );
 
       const generatedResume = await this.resumeRepository.createGeneratedResume(

@@ -6,6 +6,7 @@ import { AiRepository } from './ai.repository';
 import { GeneratedResumeDto } from 'src/resume/dto/generated-resume/generated-resume.dto';
 import { GenerateFeautureDto } from 'src/resume/dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from 'src/resume/dto/with-ai/generate-responsibilitie.dto';
+import { ChatGateway } from 'src/chat/chat.gateway';
 
 @Injectable()
 export class AiService {
@@ -14,6 +15,7 @@ export class AiService {
   constructor(
     private configService: ConfigService,
     private AiRepo: AiRepository,
+    private readonly chatGateway: ChatGateway,
   ) {
     this.ai = new Groq({
       apiKey: this.configService.get<string>('GROQ_API_KEY'),
@@ -81,14 +83,27 @@ export class AiService {
   async updateResume(
     resume: string,
     userPrompt: string,
+    userId: string,
   ): Promise<{
     aiModel: string;
     content: string | null;
     resume: string | null;
   }> {
     try {
+      // fake loader
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'reading_resume',
+        message: 'Reading resume...',
+      });
+
       const model = 'llama-3.1-8b-instant';
       const prompt = this.AiRepo.updateResumeWithUserPrompt(resume, userPrompt);
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'generating',
+        message: 'Generating new resume...',
+      });
 
       const response = await this.ai.chat.completions.create({
         model,
@@ -98,7 +113,13 @@ export class AiService {
         ],
       });
 
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log(response);
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'finalizing',
+        message: 'Finalizing resume...',
+      });
 
       const raw = response.choices[0].message.content as string;
 
