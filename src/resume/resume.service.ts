@@ -12,9 +12,6 @@ import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto'
 import { GenerateFeautureDto } from './dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from './dto/with-ai/generate-responsibilitie.dto';
 import { UserRepository } from 'src/user/user.repository';
-import { hasDaysPassed } from 'src/common/lib/hasDaysPassed';
-
-const CAN_GENERATE_RESUME_IN = 2;
 
 @Injectable()
 export class ResumeService {
@@ -121,13 +118,13 @@ export class ResumeService {
     userId: string,
   ): Promise<{ id: string; content: string | null }> {
     try {
-      // const canUseAi = await this.userRepo.canUseAi(id);
+      const canUseAi = await this.userRepo.canUseAi(userId);
 
-      // if (!canUseAi) {
-      //   throw new BadRequestException(
-      //     'You have reached the limit of AI for current plan. Please upgrade your plan.',
-      //   );
-      // }
+      if (!canUseAi) {
+        throw new BadRequestException(
+          'You have reached the limit of AI for current plan. Please upgrade your plan.',
+        );
+      }
       const resume = await this.resumeRepository.getResume(id);
       if (!resume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
@@ -152,10 +149,11 @@ export class ResumeService {
         updatedResume.aiModel,
       );
 
+      await this.userRepo.addAiCredits(userId);
+
       return {
         id: generatedResume.id,
         content: updatedResume.content,
-        // aiModel: generatedResume.aiModel,
       };
     } catch (error) {
       console.log(error);

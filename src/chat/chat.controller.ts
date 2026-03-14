@@ -5,12 +5,13 @@ import { UserDecorator } from 'src/common/decorators/user.decorator';
 import type { Chat, Message, User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { ChatService } from './chat.service';
+import { ProGuard } from 'src/common/guards/pro.guard';
 
 @Controller('chat')
 export class ChatController {
   constructor(private chatService: ChatService) {}
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, ProGuard)
   @Get('/:resumeId')
   async getChat(
     @Param('resumeId') resumeId: string,
@@ -20,7 +21,7 @@ export class ChatController {
     return { data };
   }
 
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, ProGuard)
   @Post('/:resumeId')
   async sendMessage(
     @Param('resumeId') resumeId: string,
