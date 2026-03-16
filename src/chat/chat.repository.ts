@@ -31,6 +31,40 @@ export class ChatRepository {
     return this.db.chat.findFirst({ where: { resumeId } });
   }
 
+  async saveMessages(
+    chatId: string,
+    messages: {
+      userMessage: string;
+      aiMessage: string;
+    },
+    generatedResumeId: string,
+  ): Promise<Message> {
+    const user = messages.userMessage.trim();
+    const ai = messages.aiMessage.trim();
+
+    const message = await this.db.$transaction(async (tx) => {
+      const userMessage = await tx.message.create({
+        data: {
+          chatId,
+          content: user,
+          sender: 'user',
+        },
+      });
+
+      const aiMessage = await tx.message.create({
+        data: {
+          chatId,
+          sender: 'ai',
+          content: ai,
+          generatedResumeId,
+        },
+      });
+      return aiMessage;
+    });
+
+    return message;
+  }
+
   async saveUserMessage(
     chatId: string,
     userId: string,

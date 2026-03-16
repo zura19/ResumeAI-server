@@ -134,11 +134,15 @@ export class ResumeService {
         throw new BadRequestException('You are not the owner of this resume.');
       }
 
-      const latestGeneratedResume =
-        resume.generatedResumes[resume.generatedResumes.length - 1];
+      // const latestGeneratedResume =
+      //   resume.generatedResumes[resume.generatedResumes.length - 1];
+
+      const resumes = resume.generatedResumes.map((g) => g.content);
+      console.log(resumes);
 
       const updatedResume = await this.aiService.updateResume(
-        latestGeneratedResume?.content as string,
+        resumes as string[],
+        // latestGeneratedResume?.content as string,
         prompt,
         userId,
       );

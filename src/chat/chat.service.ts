@@ -40,17 +40,26 @@ export class ChatService {
         user.id,
       );
 
-    await this.chatRepository.saveUserMessage(
+    const aiMessage = await this.chatRepository.saveMessages(
       isChatExists.id,
-      user.id,
-      message,
+      {
+        userMessage: message,
+        aiMessage: generatedResume.content as string,
+      },
+      generatedResume.id,
     );
 
-    const aiMessage = await this.chatRepository.saveAiMessage(
-      isChatExists.id,
-      generatedResume.id,
-      generatedResume.content as string,
-    );
+    // await this.chatRepository.saveUserMessage(
+    //   isChatExists.id,
+    //   user.id,
+    //   message,
+    // );
+
+    // const aiMessage = await this.chatRepository.saveAiMessage(
+    //   isChatExists.id,
+    //   generatedResume.id,
+    //   generatedResume.content as string,
+    // );
 
     return aiMessage;
   }

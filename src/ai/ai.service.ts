@@ -81,7 +81,7 @@ export class AiService {
   }
 
   async updateResume(
-    resume: string,
+    resumes: string[],
     userPrompt: string,
     userId: string,
   ): Promise<{
@@ -98,7 +98,11 @@ export class AiService {
       });
 
       const model = 'llama-3.1-8b-instant';
-      const prompt = this.AiRepo.updateResumeWithUserPrompt(resume, userPrompt);
+      const prompt = this.AiRepo.updateResumeWithUserPrompt(
+        resumes[resumes.length - 1],
+        resumes.slice(0, resumes.length - 1),
+        userPrompt,
+      );
 
       this.chatGateway.sendStatus(userId, {
         stage: 'generating',
