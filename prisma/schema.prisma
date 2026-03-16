@@ -175,7 +175,7 @@ model Message {
   sender  Sender @default(user)
 
   generatedResumeId String?          @unique
-  generatedResume   GeneratedResume? @relation(fields: [generatedResumeId], references: [id], onDelete: Cascade)
+  generatedResume   GeneratedResume? @relation(fields: [generatedResumeId], references: [id])
 
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
