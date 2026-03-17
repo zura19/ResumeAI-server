@@ -13,11 +13,13 @@ You are a professional resume writer.
 Using the information below, generate a resume.
 
 RULES:
-- Return ONLY valid JSON
+- Your response MUST be valid JSON
 - Do NOT include markdown
+- Do NOT include '''json
 - Do NOT include explanations
 - Do NOT invent experience
-- DO NOT include comments like: // something
+- ABSOLUTELY NEVER include comments like // or /* */ because it breaks JSON parsing.
+
 
 JSON FORMAT:
 {
@@ -137,50 +139,78 @@ ${JSON.stringify(data, null, 2)}
 
 `;
   }
+
+  updateResumeWithUserPrompt(
+    latestResume: string,
+    previousResumes: string[],
+    prompt: string,
+  ): string {
+    return `
+You are a professional resume writer.
+
+Your job is to update the CURRENT resume using the user prompt.
+
+CURRENT RESUME (this is the only resume you must modify):
+${latestResume}
+
+PREVIOUS VERSIONS (for context only, DO NOT use them as base):
+${previousResumes}
+
+USER PROMPT:
+${prompt}
+
+RULES:
+- ONLY modify the CURRENT RESUME
+- NEVER revert to older versions
+- DO NOT remove existing information unless the user explicitly asks
+- When adding to arrays (skills, languages, etc) ALWAYS preserve existing values
+- DO NOT change parts that are not related to the prompt
+- DO NOT invent experience
+
+OUTPUT RULES:
+- Your response MUST be valid JSON
+- DO NOT include markdown
+- DO NOT include \`\`\`json
+- DO NOT include explanations
+- ABSOLUTELY NEVER include comments like // or /* */
+
+JSON FORMAT:
+{
+  "content": string,
+  "resume": {
+    "personalInfo": {
+      "fullName": string,
+      "email": string,
+      "phone": string,
+      "address": string
+    },
+    "summary": string,
+    "skills": {
+      "technical": string[],
+      "soft": string[],
+      "languages": string[]
+    },
+    "education": {
+      "degree": string,
+      "fieldOfStudy": string,
+      "university": string,
+      "startDate": string,
+      "endDate": string
+    }[],
+    "experience": {
+      "company": string,
+      "position": string,
+      "startDate": string,
+      "endDate": string,
+      "responsibilities": string[]
+    }[],
+    "projects": {
+      "title": string,
+      "technologies": string[],
+      "features": string[]
+    }[]
+  }
 }
-
-// Create a modern, ATS-friendly resume using the information below.
-// Improve wording, make it professional, and keep it concise.
-// Do NOT invent fake experience.
-
-// PERSONAL INFO:
-// Name: ${data.personalInfo.fullName}
-// Email: ${data.personalInfo.email}
-// Phone: ${data.personalInfo.phone}
-// Address: ${data.personalInfo.address ?? 'N/A'}
-
-// SKILLS:
-// Technical: ${data.skills.technical.join(', ')}
-// Soft: ${data.skills.soft.join(', ')}
-// Languages: ${data.skills.languages.join(', ')}
-
-// EDUCATION:
-// ${data.education
-//   .map(
-//     (edu) => `
-// - ${edu.degree} in ${edu.fieldOfStudy}
-//   ${edu.university} (${edu.startDate} - ${edu.endDate ?? 'Present'})
-// `,
-//   )
-//   .join('')}
-
-// EXPERIENCE:
-// ${
-//   data.experience?.length
-//     ? data.experience
-//         .map(
-//           (exp) => `
-// - ${exp.position} at ${exp.company}
-//   (${exp.startDate} - ${exp.endDate ?? 'Present'})
-//   ${exp.description ?? ''}
-// `,
-//         )
-//         .join('')
-//     : 'No work experience provided'
-// }
-
-// Return the resume in a clean structured format with:
-// - Professional summary
-// - Skills section
-// - Education
-// - Experience
+`;
+  }
+}

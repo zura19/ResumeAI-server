@@ -6,6 +6,7 @@ import { AiRepository } from './ai.repository';
 import { GeneratedResumeDto } from 'src/resume/dto/generated-resume/generated-resume.dto';
 import { GenerateFeautureDto } from 'src/resume/dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from 'src/resume/dto/with-ai/generate-responsibilitie.dto';
+import { ChatGateway } from 'src/chat/chat.gateway';
 
 @Injectable()
 export class AiService {
@@ -14,6 +15,7 @@ export class AiService {
   constructor(
     private configService: ConfigService,
     private AiRepo: AiRepository,
+    private readonly chatGateway: ChatGateway,
   ) {
     this.ai = new Groq({
       apiKey: this.configService.get<string>('GROQ_API_KEY'),
@@ -47,12 +49,16 @@ export class AiService {
     }
   }
 
-  async generateResume(resumeData: CreateResumeDto): Promise<string | null> {
+  async generateResume(resumeData: CreateResumeDto): Promise<{
+    aiModel: string;
+    content: string | null;
+  }> {
     try {
+      const model = 'llama-3.1-8b-instant';
       const prompt = this.AiRepo.buildResumePrompt(resumeData);
 
       const response = await this.ai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model,
         messages: [
           { role: 'system', content: 'You are an expert resume writer' },
           { role: 'user', content: prompt },
@@ -61,7 +67,81 @@ export class AiService {
 
       console.log(response);
 
-      return response.choices[0].message.content;
+      const raw = response.choices[0].message.content as string;
+      return {
+        aiModel: model,
+        content: this.sanitizeJsonResponse(raw),
+      };
+    } catch (error) {
+      console.error('Error communicating with AI:', error);
+      throw new BadRequestException(
+        error.message || 'Failed to get response from AI service',
+      );
+    }
+  }
+
+  async updateResume(
+    resumes: string[],
+    userPrompt: string,
+    userId: string,
+  ): Promise<{
+    aiModel: string;
+    content: string | null;
+    resume: string | null;
+  }> {
+    try {
+      // fake loader
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'reading_resume',
+        message: 'Reading resume...',
+      });
+
+      const model = 'llama-3.1-8b-instant';
+      const prompt = this.AiRepo.updateResumeWithUserPrompt(
+        resumes[resumes.length - 1],
+        resumes.slice(0, resumes.length - 1),
+        userPrompt,
+      );
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'generating',
+        message: 'Generating new resume...',
+      });
+
+      const response = await this.ai.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: 'You are an expert resume writer' },
+          { role: 'user', content: prompt },
+        ],
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log(response);
+
+      this.chatGateway.sendStatus(userId, {
+        stage: 'finalizing',
+        message: 'Finalizing resume...',
+      });
+
+      const raw = response.choices[0].message.content as string;
+
+      const parsed: { content: string; resume: string } = JSON.parse(
+        this.sanitizeJsonResponse(raw) as any,
+      );
+
+      console.log({
+        aiModel: model,
+        content: parsed.content,
+        resume: parsed.resume,
+      });
+
+      return {
+        aiModel: model,
+        content: parsed.content,
+        resume: JSON.stringify(parsed.resume),
+      };
     } catch (error) {
       console.error('Error communicating with AI:', error);
       throw new BadRequestException(
@@ -137,5 +217,13 @@ export class AiService {
         error.message || 'Failed to get response from AI service',
       );
     }
+  }
+
+  sanitizeJsonResponse(text: string) {
+    return text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .replace(/\/\/.*$/gm, '') // remove comments
+      .trim();
   }
 }

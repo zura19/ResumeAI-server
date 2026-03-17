@@ -10,5 +10,6 @@ import { UserModule } from 'src/user/user.module';
   imports: [AiModule, UserModule],
   controllers: [ResumeController],
   providers: [ResumeService, ResumeRepository],
+  exports: [ResumeService],
 })
 export class ResumeModule {}

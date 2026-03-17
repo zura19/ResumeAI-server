@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -34,15 +35,55 @@ export class ResumeController {
     return { data: { resumeId } };
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
-  async get(@Param('id') id: string): Promise<ApiResponse<{ resume: Resume }>> {
-    const resume = await this.resumeService.getResume(id);
+  async get(
+    @Param('id') id: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ resume: Resume }>> {
+    const resume = await this.resumeService.getResume(id, user);
     return { data: { resume } };
   }
 
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() body: GeneratedResumeDto) {
-    return await this.resumeService.updateResume(id, body);
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  async deleteResume(
+    @Param('id') id: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<null>> {
+    await this.resumeService.deleteResume(id, user.id);
+    return { data: null, message: 'Resume deleted successfully' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Put(':id/:generatedResumeId')
+  async update(
+    @Param('id') id: string,
+    @Param('generatedResumeId') generatedResumeId: string,
+    @Body() body: GeneratedResumeDto,
+    @UserDecorator() user: User,
+  ) {
+    return await this.resumeService.updateResume(
+      id,
+      generatedResumeId,
+      body,
+      user,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('generated/:id/:generatedResumeId')
+  async deleteGeneratedResume(
+    @Param('id') id: string,
+    @Param('generatedResumeId') generatedResumeId: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<null>> {
+    await this.resumeService.deleteGeneratedResume(
+      generatedResumeId,
+      id,
+      user.id,
+    );
+    return { data: null, message: 'Resume version deleted successfully' };
   }
 
   @UseGuards(AuthGuard('jwt'))

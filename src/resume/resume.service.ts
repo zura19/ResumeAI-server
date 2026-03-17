@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Project, Resume } from '@prisma/client';
+import { GeneratedResume, Project, Resume, User } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { ResumeRepository } from './resume.repository';
@@ -12,9 +12,6 @@ import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto'
 import { GenerateFeautureDto } from './dto/with-ai/generate-feature.dto';
 import { GenerateResponsibilitieDto } from './dto/with-ai/generate-responsibilitie.dto';
 import { UserRepository } from 'src/user/user.repository';
-import { hasDaysPassed } from 'src/common/lib/hasDaysPassed';
-
-const CAN_GENERATE_RESUME_IN = 2;
 
 @Injectable()
 export class ResumeService {
@@ -36,19 +33,22 @@ export class ResumeService {
       }
 
       const generatedResume = await this.aiService.generateResume(body);
+      console.log(generatedResume);
       const resume = await this.resumeRepository.createResume(
         body,
-        generatedResume,
+        {
+          aiModel: generatedResume.aiModel,
+          content: generatedResume.content,
+        },
         userId,
       );
 
       let res;
       try {
-        res = JSON.parse(generatedResume || '');
+        res = JSON.parse(generatedResume.content || '');
       } catch (error) {
         throw new Error('Invalid JSON format in generatedResume');
       }
-      // console.log(paresd);
 
       return resume.id;
     } catch (error) {
@@ -57,11 +57,10 @@ export class ResumeService {
     }
   }
 
-  async getResume(id: string): Promise<Resume> {
+  async getResume(id: string, user: User): Promise<Resume> {
     try {
       const resume = await this.resumeRepository.getResume(id);
-
-      if (!resume) {
+      if (!resume || resume.userId !== user.id) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
       }
 
@@ -72,20 +71,140 @@ export class ResumeService {
     }
   }
 
-  async updateResume(id: string, body: GeneratedResumeDto) {
+  async updateResume(
+    id: string,
+    generatedResumeId: string,
+    body: GeneratedResumeDto,
+    user: User,
+  ) {
     try {
       const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
+
+      if (existingResume?.userId !== user.id) {
+        throw new BadRequestException(
+          'You are not authorized to update this resume.',
+        );
+      }
 
       if (!existingResume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
       }
 
+      const existingGeneratedResume = existingResume.generatedResumes.find(
+        (g) => g.id === generatedResumeId,
+      );
+
+      if (!existingGeneratedResume) {
+        throw new NotFoundException(
+          `Generated resume with id: ${generatedResumeId} not found for resume with id: ${id}.`,
+        );
+      }
+
       const updatedResume = await this.resumeRepository.updateGeneratedResume(
-        id,
+        generatedResumeId,
         JSON.stringify(body),
       );
 
       return { success: true, data: updatedResume };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async createAnotherVersionOfResume(
+    id: string,
+    prompt: string,
+    userId: string,
+  ): Promise<{ id: string; content: string | null }> {
+    try {
+      const canUseAi = await this.userRepo.canUseAi(userId);
+
+      if (!canUseAi) {
+        throw new BadRequestException(
+          'You have reached the limit of AI for current plan. Please upgrade your plan.',
+        );
+      }
+      const resume = await this.resumeRepository.getResume(id);
+      if (!resume) {
+        throw new NotFoundException(`Resume with id: ${id} not found.`);
+      }
+
+      if (resume.userId !== userId) {
+        throw new BadRequestException('You are not the owner of this resume.');
+      }
+
+      // const latestGeneratedResume =
+      //   resume.generatedResumes[resume.generatedResumes.length - 1];
+
+      const resumes = resume.generatedResumes.map((g) => g.content);
+      console.log(resumes);
+
+      const updatedResume = await this.aiService.updateResume(
+        resumes as string[],
+        // latestGeneratedResume?.content as string,
+        prompt,
+        userId,
+      );
+
+      const generatedResume = await this.resumeRepository.createGeneratedResume(
+        id,
+        updatedResume.resume as string,
+        updatedResume.aiModel,
+      );
+
+      await this.userRepo.addAiCredits(userId);
+
+      return {
+        id: generatedResume.id,
+        content: updatedResume.content,
+      };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async deleteResume(id: string, userId: string) {
+    try {
+      const resume = await this.resumeRepository.getResume(id);
+
+      if (!resume || resume.userId !== userId) {
+        throw new NotFoundException(
+          `Resume with id: ${id} not found or you are not the owner of this resume.`,
+        );
+      }
+
+      await this.resumeRepository.deleteResume(id);
+      return { success: true };
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async deleteGeneratedResume(
+    generatedResumeId: string,
+    resumeId: string,
+    userId: string,
+  ) {
+    try {
+      const resume = await this.resumeRepository.getResume(resumeId);
+
+      if (!resume || resume.userId !== userId) {
+        throw new NotFoundException(
+          `Resume with id: ${resumeId} not found or you are not the owner of this resume.`,
+        );
+      }
+
+      if (!resume.generatedResumes.find((g) => g.id === generatedResumeId)) {
+        throw new NotFoundException(
+          `Generated resume with id: ${generatedResumeId} not found for resume with id: ${resumeId}.`,
+        );
+      }
+
+      await this.resumeRepository.deleteGeneratedResume(generatedResumeId);
+      return { success: true };
     } catch (error) {
       console.log(error);
       throw error;
