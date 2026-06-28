@@ -12,7 +12,7 @@ import { RegisterDto } from './dtos/register.dto';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { LoginDto } from './dtos/login.dto';
-import { type Response } from 'express';
+import { type Request, type Response } from 'express';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -57,6 +57,15 @@ export class AuthController {
     @UserDecorator() user,
   ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
     return { data: { user } };
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.authService.refreshSession(req, res);
+    return { data: { user }, message: 'Session refreshed' };
   }
 
   @Post('logout')
