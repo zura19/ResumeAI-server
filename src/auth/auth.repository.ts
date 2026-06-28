@@ -75,7 +75,7 @@ export class AuthRepository {
   }
 
   signTokens(res: Response, accessToken: string, refreshToken: string) {
-    res.cookie('jwt', accessToken, this.getCookieOptions(1000 * 60 * 15));
+    res.cookie('jwt', accessToken, this.getCookieOptions(1000 * 60 * 30));
     res.cookie(
       'refreshToken',
       refreshToken,
@@ -99,17 +99,8 @@ export class AuthRepository {
     }
   }
 
-  // async getUserById(id: string) {
-  //   return this.db.user.findUnique({
-  //     where: { id },
-  //     include: {
-  //       subscription: { select: { plan: { select: { name: true } } } },
-  //     },
-  //   });
-  // }
-
   clearTokens(res: Response) {
-    res.clearCookie('jwt', this.getCookieOptions(1000 * 60 * 15));
+    res.clearCookie('jwt', this.getCookieOptions(1000 * 60 * 30));
     res.clearCookie(
       'refreshToken',
       this.getCookieOptions(1000 * 60 * 60 * 24 * 30),

@@ -12,7 +12,7 @@ import { AuthRepository } from './auth.repository';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { LoginDto } from './dtos/login.dto';
 import { Request, Response } from 'express';
-import { PlanName, User } from '@prisma/client';
+import { PlanName } from '@prisma/client';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 import { EmailService } from 'src/email/email.service';
 
@@ -24,25 +24,6 @@ export class AuthService {
     private subscriptionRepo: SubscriptionRepository,
     private email: EmailService,
   ) {}
-
-  private sanitizeUser(user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: User['role'];
-    plan?: PlanName | null;
-  }): UserWithoutPassword {
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      // @ts-expect-error plan is not in user type
-      plan: user.plan,
-    };
-  }
 
   async register(body: RegisterDto): Promise<UserWithoutPassword> {
     try {
@@ -114,14 +95,15 @@ export class AuthService {
 
       if (!plan) throw new NotFoundException('Plan not found');
 
-      return this.sanitizeUser({
+      return {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        // @ts-expect-error plan is not in user type
         plan,
-      });
+      };
     } catch (error) {
       console.log(error);
       throw error;
@@ -165,14 +147,15 @@ export class AuthService {
     );
     const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
 
-    return this.sanitizeUser({
+    return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      // @ts-expect-error plan is not in user type
       plan,
-    });
+    };
   }
 
   async refreshSession(
@@ -197,14 +180,15 @@ export class AuthService {
 
     const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
 
-    return this.sanitizeUser({
+    return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      // @ts-expect-error plan is not in user type
       plan,
-    });
+    };
   }
 
   async logout(res: Response) {
