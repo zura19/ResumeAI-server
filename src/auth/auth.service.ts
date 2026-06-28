@@ -4,13 +4,14 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserRepository } from 'src/user/user.repository';
 import { RegisterDto } from './dtos/register.dto';
 import { AuthRepository } from './auth.repository';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
 import { LoginDto } from './dtos/login.dto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { PlanName, User } from '@prisma/client';
 import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 import { EmailService } from 'src/email/email.service';
@@ -23,6 +24,25 @@ export class AuthService {
     private subscriptionRepo: SubscriptionRepository,
     private email: EmailService,
   ) {}
+
+  private sanitizeUser(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: User['role'];
+    plan?: PlanName | null;
+  }): UserWithoutPassword {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      // @ts-expect-error plan is not in user type
+      plan: user.plan,
+    };
+  }
 
   async register(body: RegisterDto): Promise<UserWithoutPassword> {
     try {
@@ -75,8 +95,8 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
 
-      const jwt = await this.authRepo.generateJwt(user.id, user.email);
-      this.authRepo.signJwt(res, jwt.access_token);
+      const tokens = await this.authRepo.generateTokens(user.id, user.email);
+      this.authRepo.signTokens(res, tokens.access_token, tokens.refresh_token);
 
       const plan = (await this.userRepo.getUserPlanByUserId(
         user.id,
@@ -94,15 +114,14 @@ export class AuthService {
 
       if (!plan) throw new NotFoundException('Plan not found');
 
-      return {
+      return this.sanitizeUser({
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
-        // @ts-expect-error plan is not in user type
         plan,
-      };
+      });
     } catch (error) {
       console.log(error);
       throw error;
@@ -135,22 +154,60 @@ export class AuthService {
       email: user.email,
     };
 
-    const jwt = await this.authRepo.generateJwt(payload.sub, payload.email);
-    this.authRepo.signJwt(req.res, jwt.access_token);
+    const tokens = await this.authRepo.generateTokens(
+      payload.sub,
+      payload.email,
+    );
+    this.authRepo.signTokens(
+      req.res,
+      tokens.access_token,
+      tokens.refresh_token,
+    );
     const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
 
-    return {
+    return this.sanitizeUser({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      // @ts-expect-error plan is not in user type
       plan,
-    };
+    });
+  }
+
+  async refreshSession(
+    req: Request,
+    res: Response,
+  ): Promise<UserWithoutPassword> {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token missing');
+    }
+
+    const payload = await this.authRepo.verifyRefreshToken(refreshToken);
+    const user = await this.userRepo.getById(payload.sub);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokens = await this.authRepo.generateTokens(user.id, user.email);
+    this.authRepo.signTokens(res, tokens.access_token, tokens.refresh_token);
+
+    const plan = (await this.userRepo.getUserPlanByUserId(user.id)) as PlanName;
+
+    return this.sanitizeUser({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      plan,
+    });
   }
 
   async logout(res: Response) {
-    return this.authRepo.clearJwt(res);
+    return this.authRepo.clearTokens(res);
   }
 }
