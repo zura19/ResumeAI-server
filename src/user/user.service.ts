@@ -88,6 +88,9 @@ export class UserService {
         where: {
           userId: id,
         },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       }),
       await this.db.payment.aggregate({
         where: {

@@ -183,6 +183,52 @@ export class ResumeService {
     }
   }
 
+  async duplicateResume(
+    resumeId: string,
+    generatedId: string,
+    userId: string,
+  ): Promise<string> {
+    try {
+      const canGenerateResume = await this.userRepo.canGenerateAI(userId);
+
+      if (!canGenerateResume) {
+        throw new BadRequestException(
+          'You have reached the limit of resume generation for current plan. Please upgrade your plan.',
+        );
+      }
+
+      const resume =
+        await this.resumeRepository.getResumeForDuplicate(resumeId);
+
+      if (!resume || resume.userId !== userId) {
+        throw new NotFoundException(
+          `Resume with id: ${resumeId} not found or you are not the owner of this resume.`,
+        );
+      }
+
+      const generatedResume = resume.generatedResumes.find(
+        (g) => g.id === generatedId,
+      );
+
+      if (!generatedResume) {
+        throw new NotFoundException(
+          `Generated resume with id: ${generatedId} not found for resume with id: ${resumeId}.`,
+        );
+      }
+
+      const duplicatedResume = await this.resumeRepository.duplicateResume(
+        resume,
+        generatedResume,
+        userId,
+      );
+
+      return duplicatedResume.id;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
   async changeTitle(
     resumeId: string,
     title: string,
