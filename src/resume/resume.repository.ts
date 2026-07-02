@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { GeneratedResume, Prisma } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { CreateResumeDto } from './dto/resume.dto';
 
@@ -115,6 +116,100 @@ export class ResumeRepository {
       include: {
         generatedResumes: true,
       },
+    });
+  }
+
+  async getResumeForDuplicate(id: string) {
+    return this.db.resume.findUnique({
+      where: { id },
+      include: {
+        personalInfo: true,
+        skills: true,
+        education: true,
+        experiences: true,
+        projects: true,
+        generatedResumes: true,
+      },
+    });
+  }
+
+  async duplicateResume(
+    sourceResume: NonNullable<
+      Awaited<ReturnType<ResumeRepository['getResumeForDuplicate']>>
+    >,
+    generatedResume: GeneratedResume,
+    userId: string,
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const resume = await tx.resume.create({
+        data: {
+          userId,
+          type: sourceResume.type,
+          personalInfo: sourceResume.personalInfo
+            ? {
+                create: {
+                  fullName: sourceResume.personalInfo.fullName,
+                  email: sourceResume.personalInfo.email,
+                  phone: sourceResume.personalInfo.phone,
+                  address: sourceResume.personalInfo.address,
+                },
+              }
+            : undefined,
+          skills: sourceResume.skills
+            ? {
+                create: {
+                  soft: sourceResume.skills.soft,
+                  languages: sourceResume.skills.languages,
+                  technical: sourceResume.skills.technical,
+                },
+              }
+            : undefined,
+          education: {
+            create: sourceResume.education.map((edu) => ({
+              university: edu.university,
+              degree: edu.degree,
+              fieldOfStudy: edu.fieldOfStudy,
+              startDate: edu.startDate,
+              endDate: edu.endDate,
+              stillStudying: edu.stillStudying,
+            })),
+          },
+          experiences: {
+            create: sourceResume.experiences.map((exp) => ({
+              company: exp.company,
+              position: exp.position,
+              description: exp.description,
+              startDate: exp.startDate,
+              endDate: exp.endDate,
+              stillWorking: exp.stillWorking,
+            })),
+          },
+          projects: {
+            create: sourceResume.projects.map((project) => ({
+              title: project.title,
+              description: project.description,
+            })),
+          },
+          generatedResumes: {
+            create: {
+              content:
+                generatedResume.content === null
+                  ? Prisma.JsonNull
+                  : (generatedResume.content as Prisma.InputJsonValue),
+              aiModel: generatedResume.aiModel,
+            },
+          },
+        },
+      });
+
+      const title = sourceResume.personalInfo
+        ? `${sourceResume.personalInfo.fullName} - ${resume.id}`
+        : resume.id;
+
+      return tx.resume.update({
+        where: { id: resume.id },
+        data: { title },
+      });
     });
   }
 

@@ -37,6 +37,25 @@ export class ResumeController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('duplicate/:resumeId/:generatedId')
+  async duplicate(
+    @Param('resumeId') resumeId: string,
+    @Param('generatedId') generatedId: string,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ resumeId: string }>> {
+    const duplicatedResumeId = await this.resumeService.duplicateResume(
+      resumeId,
+      generatedId,
+      user.id,
+    );
+
+    return {
+      data: { resumeId: duplicatedResumeId },
+      message: 'Resume duplicated successfully',
+    };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   async get(
     @Param('id') id: string,
