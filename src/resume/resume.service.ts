@@ -201,6 +201,19 @@ export class ResumeService {
         );
       }
 
+      const existingResumeWithTitle =
+        await this.resumeRepository.userHasResumeWithTitle(
+          userId,
+          title,
+          resumeId,
+        );
+
+      if (existingResumeWithTitle) {
+        throw new BadRequestException(
+          'You already have a resume with this title.',
+        );
+      }
+
       const updatedResume = await this.resumeRepository.updateTitle(
         resumeId,
         title,
