@@ -78,6 +78,13 @@ export class ResumeRepository {
         },
       });
 
+      const title = `${personalInfo.fullName} - ${resume.id}`;
+
+      await tx.resume.update({
+        where: { id: resume.id },
+        data: { title },
+      });
+
       await tx.generatedResume.create({
         data: {
           resumeId: resume.id,
@@ -111,10 +118,41 @@ export class ResumeRepository {
     });
   }
 
+  async userHasResumeWithTitle(
+    userId: string,
+    title: string,
+    excludeResumeId?: string,
+  ) {
+    return this.db.resume.findFirst({
+      where: {
+        userId,
+        title: title.toLocaleLowerCase(),
+        ...(excludeResumeId
+          ? {
+              id: {
+                not: excludeResumeId,
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
   async updateGeneratedResume(id: string, generatedJSON: string) {
     return this.db.generatedResume.update({
       where: { id },
       data: { content: generatedJSON },
+    });
+  }
+
+  async updateTitle(id: string, title: string) {
+    return this.db.resume.update({
+      where: { id },
+      data: { title },
+      select: { title: true },
     });
   }
 

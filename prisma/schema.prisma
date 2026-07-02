@@ -47,6 +47,7 @@ enum Role {
 
 model Resume {
   id           String        @id @default(cuid())
+  title        String?
   personalInfo PersonalInfo?
   skills       Skills?
   education    Education[]

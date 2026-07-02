@@ -88,9 +88,6 @@ export class UserService {
         where: {
           userId: id,
         },
-        include: {
-          personalInfo: true,
-        },
       }),
       await this.db.payment.aggregate({
         where: {
@@ -102,19 +99,19 @@ export class UserService {
         },
       }),
     ]);
-    const resumes = resumesData.map((resume) => ({
-      id: resume.id,
-      title: resume.personalInfo?.fullName || '',
-      type: resume.type,
-      createdAt: resume.createdAt,
-    }));
+
+    console.log('resumesData', resumesData);
 
     const totals = {
-      totalResumes: +resumes.length,
+      totalResumes: +resumesData.length,
       totalAiCredits: +user.aiCreditsTotal,
       totalTransactions: Number(userTotalTransactions._sum.amount),
     };
 
-    return { user: userData, resumes: resumes, totals };
+    return {
+      user: userData,
+      resumes: resumesData,
+      totals,
+    };
   }
 }

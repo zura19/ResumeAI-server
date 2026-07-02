@@ -9,7 +9,13 @@ export class ProfileResponseDto {
     email: string;
   };
   resumes:
-    | { id: string; title: string; type: ResumeType; createdAt: Date }[]
+    | {
+        id: string;
+        title: string | null;
+        type: ResumeType;
+        createdAt: Date;
+        updatedAt: Date;
+      }[]
     | [];
   totals: {
     totalTransactions: number;
