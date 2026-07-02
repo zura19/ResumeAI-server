@@ -189,9 +189,16 @@ export class ResumeService {
     userId: string,
   ): Promise<string> {
     try {
-      const resume = await this.resumeRepository.getResumeForDuplicate(
-        resumeId,
-      );
+      const canGenerateResume = await this.userRepo.canGenerateAI(userId);
+
+      if (!canGenerateResume) {
+        throw new BadRequestException(
+          'You have reached the limit of resume generation for current plan. Please upgrade your plan.',
+        );
+      }
+
+      const resume =
+        await this.resumeRepository.getResumeForDuplicate(resumeId);
 
       if (!resume || resume.userId !== userId) {
         throw new NotFoundException(

@@ -206,6 +206,17 @@ export class ResumeRepository {
         ? `${sourceResume.personalInfo.fullName} - ${resume.id}`
         : resume.id;
 
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          aiCreditsThisMonth: { increment: 1 },
+          aiCreditsTotal: { increment: 1 },
+          aiLastUsedAt: new Date(),
+          resumesThisMonth: { increment: 1 },
+          resumeLastGeneratedAt: new Date(),
+        },
+      });
+
       return tx.resume.update({
         where: { id: resume.id },
         data: { title },
