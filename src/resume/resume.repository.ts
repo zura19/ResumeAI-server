@@ -126,7 +126,7 @@ export class ResumeRepository {
     return this.db.resume.findFirst({
       where: {
         userId,
-        title,
+        title: title.toLocaleLowerCase(),
         ...(excludeResumeId
           ? {
               id: {
