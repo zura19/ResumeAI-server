@@ -118,6 +118,14 @@ export class ResumeRepository {
     });
   }
 
+  async updateTitle(id: string, title: string) {
+    return this.db.resume.update({
+      where: { id },
+      data: { title },
+      select: { title: true },
+    });
+  }
+
   async deleteResume(id: string) {
     return this.db.resume.delete({ where: { id } });
   }

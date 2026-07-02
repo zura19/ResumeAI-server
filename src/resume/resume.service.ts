@@ -183,6 +183,36 @@ export class ResumeService {
     }
   }
 
+  async changeTitle(
+    resumeId: string,
+    title: string,
+    userId: string,
+  ): Promise<string> {
+    try {
+      const resume = await this.resumeRepository.getResume(resumeId);
+
+      if (!resume) {
+        throw new NotFoundException(`Resume with id: ${resumeId} not found.`);
+      }
+
+      if (resume.userId !== userId) {
+        throw new BadRequestException(
+          'You are not authorized to update this resume title.',
+        );
+      }
+
+      const updatedResume = await this.resumeRepository.updateTitle(
+        resumeId,
+        title,
+      );
+
+      return updatedResume.title ?? '';
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
   async deleteGeneratedResume(
     generatedResumeId: string,
     resumeId: string,

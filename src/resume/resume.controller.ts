@@ -19,6 +19,7 @@ import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { Resume, type User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { getUniversitiesQueryDto } from './dto/get-universities.query';
+import { ChangeTitleDto } from './dto/change-title.dto';
 
 @Controller('resume')
 export class ResumeController {
@@ -53,6 +54,17 @@ export class ResumeController {
   ): Promise<ApiResponse<null>> {
     await this.resumeService.deleteResume(id, user.id);
     return { data: null, message: 'Resume deleted successfully' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Put('title/:id')
+  async changeTitle(
+    @Param('id') id: string,
+    @Body() body: ChangeTitleDto,
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ title: string }>> {
+    const title = await this.resumeService.changeTitle(id, body.title, user.id);
+    return { data: { title }, message: 'Resume title updated successfully' };
   }
 
   @UseGuards(AuthGuard('jwt'))
