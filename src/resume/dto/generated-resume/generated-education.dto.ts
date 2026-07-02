@@ -7,7 +7,7 @@ export class GeneratedEducationDto {
   university: string;
 
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   degree: string;
 
   @IsString()

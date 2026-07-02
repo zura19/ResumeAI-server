@@ -8,7 +8,7 @@ import { GeneratedProjectDto } from './generated-projects.dto';
 
 export class GeneratedResumeDto {
   @IsString()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   summary: string;
 
   @ValidateNested()
