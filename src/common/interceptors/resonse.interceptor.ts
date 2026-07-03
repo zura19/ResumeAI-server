@@ -93,20 +93,30 @@ export class ResponseInterceptor<T> implements NestInterceptor<
       err instanceof HttpException
         ? err.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
+    const httpResponse =
+      err instanceof HttpException ? (err.getResponse() as any) : undefined;
+    const responseMessage = Array.isArray(httpResponse?.message)
+      ? httpResponse.message.join(', ')
+      : httpResponse?.message;
+    const message =
+      responseMessage ??
+      err?.message ??
+      httpResponse?.error ??
+      'Internal server error';
 
     this.logger.error({
       message: 'Error occurred',
       path,
       statusCode,
-      errors: err.message,
-      stack: err.stack,
+      errors: err?.message ?? httpResponse,
+      stack: err?.stack,
     });
 
     let errorResponse: ApiResponse<null> = {
       statusCode,
       success: false,
-      errors: err.name || 'Error occurred',
-      message: err.response.message || err.message || 'Internal server error',
+      errors: err?.name || 'Error occurred',
+      message,
       data: null,
       metadata: {
         timestamp: Date.now(),
@@ -132,12 +142,5 @@ export class ResponseInterceptor<T> implements NestInterceptor<
     }
 
     return throwError(() => new HttpException(errorResponse, statusCode));
-  }
-
-  private getStatusMessage(statusCode: number): string {
-    if (statusCode >= 200 && statusCode < 300) return 'Success';
-    if (statusCode >= 400 && statusCode < 500) return 'Client Error';
-    if (statusCode >= 500) return 'Server Error';
-    return 'Unknown Status';
   }
 }
