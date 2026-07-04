@@ -20,12 +20,14 @@ import { Resume, type User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { getUniversitiesQueryDto } from './dto/get-universities.query';
 import { ChangeTitleDto } from './dto/change-title.dto';
+import { CanGenerateAiGuard } from 'src/common/guards/can-generate-ai.guard';
+import { CanUseAiGuard } from 'src/common/guards/can-use-ai.guard';
 
 @Controller('resume')
 export class ResumeController {
   constructor(private readonly resumeService: ResumeService) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CanGenerateAiGuard)
   @Post()
   async create(
     @Body() body: CreateResumeDto,
@@ -36,7 +38,7 @@ export class ResumeController {
     return { data: { resumeId } };
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CanGenerateAiGuard)
   @Post('duplicate/:resumeId/:generatedId')
   async duplicate(
     @Param('resumeId') resumeId: string,
@@ -117,7 +119,7 @@ export class ResumeController {
     return { data: null, message: 'Resume version deleted successfully' };
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('summary/:id')
   async generateSummary(
     @Param('id') id: string,
@@ -137,7 +139,7 @@ export class ResumeController {
     return { data: { canGenerate } };
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('generate/feature')
   async generateFeature(
     @Body() body: GenerateFeautureDto,
@@ -146,7 +148,7 @@ export class ResumeController {
     return await this.resumeService.generateFeature(body, user.id);
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('generate/responsibilitie')
   async generateResponsibilitie(
     @Body() body: GenerateResponsibilitieDto,

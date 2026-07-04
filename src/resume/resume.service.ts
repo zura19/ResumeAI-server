@@ -24,14 +24,6 @@ export class ResumeService {
 
   async createResume(body: CreateResumeDto, userId: string): Promise<string> {
     try {
-      const canGenerateResume = await this.userRepo.canGenerateAI(userId);
-
-      if (!canGenerateResume) {
-        throw new BadRequestException(
-          'You have reached the limit of resume generation for current plan. Please upgrade your plan.',
-        );
-      }
-
       const generatedResume = await this.aiService.generateResume(body);
       console.log(generatedResume);
       const resume = await this.resumeRepository.createResume(
@@ -118,13 +110,6 @@ export class ResumeService {
     userId: string,
   ): Promise<{ id: string; content: string | null }> {
     try {
-      const canUseAi = await this.userRepo.canUseAi(userId);
-
-      if (!canUseAi) {
-        throw new BadRequestException(
-          'You have reached the limit of AI for current plan. Please upgrade your plan.',
-        );
-      }
       const resume = await this.resumeRepository.getResume(id);
       if (!resume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
@@ -189,14 +174,6 @@ export class ResumeService {
     userId: string,
   ): Promise<string> {
     try {
-      const canGenerateResume = await this.userRepo.canGenerateAI(userId);
-
-      if (!canGenerateResume) {
-        throw new BadRequestException(
-          'You have reached the limit of resume generation for current plan. Please upgrade your plan.',
-        );
-      }
-
       const resume =
         await this.resumeRepository.getResumeForDuplicate(resumeId);
 
@@ -302,14 +279,6 @@ export class ResumeService {
 
   async generateSummary(id: string, body: GeneratedResumeDto, userId: string) {
     try {
-      const canUseAi = await this.userRepo.canUseAi(userId);
-
-      if (!canUseAi) {
-        throw new BadRequestException(
-          'You have reached the limit of AI for current plan. Please upgrade your plan.',
-        );
-      }
-
       const existingResume = await this.resumeRepository.getResume(id); // Check if the resume exists
       if (!existingResume) {
         throw new NotFoundException(`Resume with id: ${id} not found.`);
@@ -338,15 +307,7 @@ export class ResumeService {
 
   async generateFeature(body: GenerateFeautureDto, id: string) {
     try {
-      const canUseAi = await this.userRepo.canUseAi(id);
-
       // const feature = 'Generated feature';
-
-      if (!canUseAi) {
-        throw new BadRequestException(
-          'You have reached the limit of AI for current plan. Please upgrade your plan.',
-        );
-      }
 
       const feature = await this.aiService.generateProjectFeature(body);
       if (feature) {
@@ -368,15 +329,6 @@ export class ResumeService {
 
   async generateResponsibilitie(body: GenerateResponsibilitieDto, id: string) {
     try {
-      const canUseAi = await this.userRepo.canUseAi(id);
-      console.log(canUseAi + '5000');
-
-      if (!canUseAi) {
-        throw new BadRequestException(
-          'You have reached the limit of AI for current plan. Please upgrade your plan.',
-        );
-      }
-
       // const responsibilitie = 'Generated responsibilitie';
       const responsibilitie =
         await this.aiService.generateExperienceResponsibilitie(body);
@@ -400,8 +352,20 @@ export class ResumeService {
 
   async canGenerate(id: string): Promise<boolean> {
     try {
-      const can = await this.userRepo.canGenerateAI(id);
-      return can;
+      const user = await this.db.user.findUnique({
+        where: { id },
+        include: {
+          resumes: { select: { id: true } },
+          subscription: {
+            include: {
+              plan: { select: { totalResumes: true } },
+            },
+          },
+        },
+      });
+
+      const limit = user?.subscription?.plan.totalResumes;
+      return !!user && !!limit && user.resumes.length < limit;
     } catch (error) {
       console.log(error);
       throw error;

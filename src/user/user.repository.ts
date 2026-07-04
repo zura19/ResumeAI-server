@@ -3,9 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PlanName, Subscription, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { RegisterDto } from 'src/auth/dtos/register.dto';
-import { isSameDay } from 'src/common/lib/isSameDay';
 import { DbService } from 'src/db/db.service';
 
 @Injectable()
@@ -89,46 +88,6 @@ export class UserRepository {
     });
 
     return transaction;
-  }
-
-  async canUseAi(id: string): Promise<boolean> {
-    const user = await this.db.user.findUnique({
-      where: { id },
-      include: {
-        subscription: {
-          include: {
-            plan: { select: { aiCreditsPerMonth: true } },
-          },
-        },
-      },
-    });
-
-    const limit = user?.subscription?.plan.aiCreditsPerMonth;
-    if (!user || !limit) return false;
-
-    if (user.aiCreditsThisMonth >= limit) return false;
-
-    return true;
-  }
-
-  async canGenerateAI(id: string) {
-    const user = await this.db.user.findUnique({
-      where: { id },
-      include: {
-        resumes: { select: { id: true } },
-        subscription: {
-          include: {
-            plan: { select: { totalResumes: true } },
-          },
-        },
-      },
-    });
-    const limit = user?.subscription?.plan.totalResumes;
-
-    if (!user || !limit) return false;
-    if (user.resumes.length >= limit) return false;
-
-    return true;
   }
 
   async addAiCredits(id: string, amount: number = 1) {
