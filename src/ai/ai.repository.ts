@@ -72,6 +72,8 @@ WHAT I WANT:
 - Preserve user-provided arrays exactly in meaning
 - If any top-level array is empty, return an empty array for that field and do not add objects to it
 - If education is empty, return "education": []
+- If an education item has no degree, return "degree": ""
+- Do NOT infer or invent a degree when the user did not provide one
 - If experience is empty, return "experience": []
 - If projects is empty, return "projects": []
 - If responsibilities is empty inside an existing experience item, return "responsibilities": []
@@ -188,6 +190,8 @@ RULES:
 - When adding to arrays (skills, languages, etc) ALWAYS preserve existing values
 - DO NOT change parts that are not related to the prompt
 - DO NOT invent experience
+- If an education item has no degree, return "degree": ""
+- Do NOT infer or invent a degree when the user did not provide one
 
 OUTPUT RULES:
 - Your response MUST be valid JSON

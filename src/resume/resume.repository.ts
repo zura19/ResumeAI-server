@@ -43,7 +43,7 @@ export class ResumeRepository {
           education: {
             create: education.map((edu) => ({
               university: edu.university,
-              degree: edu.degree,
+              degree: edu.degree ?? '',
               fieldOfStudy: edu.fieldOfStudy,
               startDate: edu.startDate,
               endDate: edu.endDate,
@@ -167,7 +167,7 @@ export class ResumeRepository {
           education: {
             create: sourceResume.education.map((edu) => ({
               university: edu.university,
-              degree: edu.degree,
+              degree: edu.degree ?? '',
               fieldOfStudy: edu.fieldOfStudy,
               startDate: edu.startDate,
               endDate: edu.endDate,
