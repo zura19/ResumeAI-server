@@ -54,7 +54,7 @@ export class AiService {
     content: string | null;
   }> {
     try {
-      const model = 'llama-3.1-8b-instant';
+      const model = 'openai/gpt-oss-120b';
       const prompt = this.AiRepo.buildResumePrompt(resumeData);
 
       const response = await this.ai.chat.completions.create({
@@ -97,7 +97,7 @@ export class AiService {
         message: 'Reading resume...',
       });
 
-      const model = 'llama-3.1-8b-instant';
+      const model = 'openai/gpt-oss-120b';
       const prompt = this.AiRepo.updateResumeWithUserPrompt(
         resumes[resumes.length - 1],
         resumes.slice(0, resumes.length - 1),
@@ -142,7 +142,7 @@ export class AiService {
         content: parsed.content,
         resume: JSON.stringify(parsed.resume),
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error communicating with AI:', error);
       throw new BadRequestException(
         error.message || 'Failed to get response from AI service',
@@ -156,7 +156,7 @@ export class AiService {
     try {
       const prompt = this.AiRepo.buildSummaryPrompt(dataForSummary);
       const response = await this.ai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: 'You are an expert resume writer' },
           { role: 'user', content: prompt },
@@ -166,7 +166,7 @@ export class AiService {
       console.log(response);
 
       return response.choices[0].message.content;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error communicating with AI:', error);
       throw new BadRequestException(
         error.message || 'Failed to get response from AI service',
@@ -181,7 +181,7 @@ export class AiService {
       const prompt = this.AiRepo.projectFeaturePrompt(data);
 
       const response = await this.ai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: 'You are an expert resume writer' },
           { role: 'user', content: prompt },
@@ -189,7 +189,7 @@ export class AiService {
       });
 
       return response.choices[0].message.content;
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       throw new BadRequestException(
         error.message || 'Failed to get response from AI service',
@@ -204,14 +204,14 @@ export class AiService {
       const prompt = this.AiRepo.experienceResponsibilitiePrompt(data); // Replace with your actual prompt
 
       const response = await this.ai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: 'You are an expert resume writer' },
           { role: 'user', content: prompt },
         ],
       });
       return response.choices[0].message.content;
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
       throw new BadRequestException(
         error.message || 'Failed to get response from AI service',
