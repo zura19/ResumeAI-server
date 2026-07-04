@@ -1,5 +1,5 @@
 // dto/project.dto.ts
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class ProjectDto {
   @IsString()
@@ -8,5 +8,6 @@ export class ProjectDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(500)
   description: string;
 }

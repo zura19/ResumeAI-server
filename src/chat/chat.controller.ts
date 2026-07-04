@@ -6,6 +6,7 @@ import type { Chat, Message, User } from '@prisma/client';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { ChatService } from './chat.service';
 import { ProGuard } from 'src/common/guards/pro.guard';
+import { CanUseAiGuard } from 'src/common/guards/can-use-ai.guard';
 
 @Controller('chat')
 export class ChatController {
@@ -21,7 +22,7 @@ export class ChatController {
     return { data };
   }
 
-  @UseGuards(JwtGuard, ProGuard)
+  @UseGuards(JwtGuard, ProGuard, CanUseAiGuard)
   @Post('/:resumeId')
   async sendMessage(
     @Param('resumeId') resumeId: string,

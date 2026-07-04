@@ -7,8 +7,8 @@ export class EducationDto {
   university: string;
 
   @IsString()
-  @IsNotEmpty()
-  degree: string;
+  @IsOptional()
+  degree?: string;
 
   @IsString()
   @IsNotEmpty()

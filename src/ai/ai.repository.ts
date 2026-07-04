@@ -14,11 +14,18 @@ Using the information below, generate a resume.
 
 RULES:
 - Your response MUST be valid JSON
+- Your response MUST be parseable by JSON.parse without any cleanup
 - Do NOT include markdown
 - Do NOT include '''json
 - Do NOT include explanations
 - Do NOT invent experience
 - ABSOLUTELY NEVER include comments like // or /* */ because it breaks JSON parsing.
+- Do NOT include unescaped control characters inside strings
+- Do NOT include literal line breaks inside JSON string values; use normal sentence spacing instead
+- Do NOT include stray slashes, backslashes, "/n", "\\n", or invalid escape sequences in any string value
+- If you need a slash as real content, include it only when it exists in the user data
+- Every object and array MUST follow the exact JSON schema below
+- Do NOT add extra fields
 
 
 JSON FORMAT:
@@ -32,8 +39,8 @@ JSON FORMAT:
   "summary": string,
   "skills": {
     "technical": string[],
-    "soft": string[]
-    "languages": string[],
+    "soft": string[],
+    "languages": string[]
   },
   "education": {
     "degree": string,
@@ -52,7 +59,7 @@ JSON FORMAT:
   "projects": {
     "title": string,
     "technologies": string[],
-    "features": string[],
+    "features": string[]
   }[]
 }
 
@@ -62,6 +69,23 @@ WHAT I WANT:
 - MINIMUM 3 And MAXIMUM 5 Project features
 - Recognize country code form number and ADD it to phone
 - Return ONLY valid JSON
+- Preserve user-provided arrays exactly in meaning
+- If any top-level array is empty, return an empty array for that field and do not add objects to it
+- If education is empty, return "education": []
+- If an education item has no degree, return "degree": ""
+- Do NOT infer or invent a degree when the user did not provide one
+- If experience is empty, return "experience": []
+- If projects is empty, return "projects": []
+- If responsibilities is empty inside an existing experience item, return "responsibilities": []
+- If technologies or features is empty inside an existing project item, return an empty array for that field
+- Do NOT infer, invent, or add education, experience, projects, responsibilities, technologies, or features when the related user array is empty
+- Skills must be based ONLY on the user's skills input
+- If technical skills are empty, return "technical": []
+- If soft skills are empty, return "soft": []
+- If language skills are empty, return "languages": []
+- Do NOT infer skills from summary, education, experience, projects, responsibilities, technologies, job titles, or any other field
+- You may only fix spelling, grammar, capitalization, or formatting mistakes in skills that the user already provided
+- Do NOT add new technical, soft, or language skills
 
 
 
@@ -166,6 +190,8 @@ RULES:
 - When adding to arrays (skills, languages, etc) ALWAYS preserve existing values
 - DO NOT change parts that are not related to the prompt
 - DO NOT invent experience
+- If an education item has no degree, return "degree": ""
+- Do NOT infer or invent a degree when the user did not provide one
 
 OUTPUT RULES:
 - Your response MUST be valid JSON

@@ -72,7 +72,19 @@ export class UserService {
   }
 
   async canUseAi(id: string) {
-    return await this.userRepo.canUseAi(id);
+    const user = await this.db.user.findUnique({
+      where: { id },
+      include: {
+        subscription: {
+          include: {
+            plan: { select: { aiCreditsPerMonth: true } },
+          },
+        },
+      },
+    });
+
+    const limit = user?.subscription?.plan.aiCreditsPerMonth;
+    return !!user && !!limit && user.aiCreditsThisMonth < limit;
   }
 
   async getProfileData(user: User): Promise<ProfileResponseDto> {
