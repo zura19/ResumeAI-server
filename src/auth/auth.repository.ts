@@ -60,12 +60,12 @@ export class AuthRepository {
 
     const accessToken = await this.jwtService.signAsync(accessPayload, {
       secret: this.getAccessSecret(),
-      expiresIn: '15m',
+      expiresIn: '30m', // 30 minutes
     });
 
     const refreshToken = await this.jwtService.signAsync(refreshPayload, {
       secret: this.getRefreshSecret(),
-      expiresIn: '30d',
+      expiresIn: '30d', // 30 days
     });
 
     return {
@@ -75,11 +75,11 @@ export class AuthRepository {
   }
 
   signTokens(res: Response, accessToken: string, refreshToken: string) {
-    res.cookie('jwt', accessToken, this.getCookieOptions(1000 * 60 * 30));
+    res.cookie('jwt', accessToken, this.getCookieOptions(1000 * 60 * 30)); // 30 minutes
     res.cookie(
       'refreshToken',
       refreshToken,
-      this.getCookieOptions(1000 * 60 * 60 * 24 * 30),
+      this.getCookieOptions(1000 * 60 * 60 * 24 * 30), // 30 days
     );
   }
 
