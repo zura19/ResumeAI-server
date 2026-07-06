@@ -9,7 +9,7 @@ export class ChatRepository {
   async getChatByResumeId(resumeId: string): Promise<Chat | null> {
     const chat = await this.db.chat.findFirst({
       where: { resumeId },
-      include: { messages: true },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     return chat;
   }
