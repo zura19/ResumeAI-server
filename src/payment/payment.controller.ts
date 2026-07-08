@@ -55,6 +55,7 @@ export class PaymentController {
   ): Promise<
     ApiResponse<{
       status: string;
+      paymentStatus: string | null;
       total: number | null;
       currency: string | null;
       last4: string | null;
@@ -71,13 +72,22 @@ export class PaymentController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('/reconcile')
+  async reconcileSubscription(
+    @UserDecorator() user: User,
+  ): Promise<ApiResponse<{ reconciled: boolean; message: string }>> {
+    const result = await this.paymentService.reconcileSubscription(user);
+    return { data: result, message: result.message };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('/cancel/status')
   async getCancelStatus(
     @UserDecorator() user: User,
-  ): Promise<ApiResponse<{ allowCancel: boolean; user: User }>> {
+  ): Promise<ApiResponse<{ isCanceled: boolean; user: User }>> {
     const data = await this.paymentService.checkCancelStatus(
       user.id,
-      user.stripeCustomerId as string,
+      user.stripeCustomerId,
     );
     return { data: { ...data, user } };
   }
