@@ -9,10 +9,12 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
-import type { Payment, Plan, User } from '@prisma/client';
+import type { Payment, User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { CheckoutDto } from './dtos/checkout.dto';
+import { JwtGuard } from 'src/common/guards/jwt.guard';
+import { AdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('payment')
 export class PaymentController {
@@ -71,12 +73,12 @@ export class PaymentController {
     return { data: paymentDetails };
   }
 
-  @UseGuards(AuthGuard('jwt'))
-  @Post('/reconcile')
+  @UseGuards(JwtGuard, AdminGuard)
+  @Post('/reconcile/:userId')
   async reconcileSubscription(
-    @UserDecorator() user: User,
+    @Param('userId') userId: string,
   ): Promise<ApiResponse<{ reconciled: boolean; message: string }>> {
-    const result = await this.paymentService.reconcileSubscription(user);
+    const result = await this.paymentService.reconcileSubscription(userId);
     return { data: result, message: result.message };
   }
 

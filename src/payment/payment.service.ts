@@ -5,16 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PaymentRepository } from './payment.repository';
-import { Payment, Plan, User } from '@prisma/client';
+import { Payment, User } from '@prisma/client';
 import { CheckoutDto } from './dtos/checkout.dto';
 import { PlanService } from 'src/plan/plan.service';
 import Stripe from 'stripe';
+import { UserRepository } from 'src/user/user.repository';
 
 @Injectable()
 export class PaymentService {
   constructor(
     private paymentRepo: PaymentRepository,
     private planService: PlanService,
+    private userRepo: UserRepository,
   ) {}
   async createPaymentIntent(user: User, dto: CheckoutDto): Promise<any> {
     try {
@@ -164,11 +166,19 @@ export class PaymentService {
   // active Stripe subscription and runs the same idempotent provisioning the
   // webhook uses, so it is safe to call repeatedly.
   async reconcileSubscription(
-    user: User,
+    userId: string,
   ): Promise<{ reconciled: boolean; message: string }> {
     try {
+      const user = await this.userRepo.getById(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       if (!user.stripeCustomerId) {
-        return { reconciled: false, message: 'No Stripe customer to reconcile' };
+        return {
+          reconciled: false,
+          message: 'No Stripe customer to reconcile',
+        };
       }
 
       const activeSubscription =
@@ -187,7 +197,10 @@ export class PaymentService {
         activeSubscription.id,
       );
 
-      return { reconciled: true, message: 'Subscription reconciled' };
+      return {
+        reconciled: true,
+        message: 'Subscription reconciled',
+      };
     } catch (error) {
       console.log(error);
       throw error;
