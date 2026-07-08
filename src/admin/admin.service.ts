@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { AdminRepository } from './admin.repository';
 import { TotalsResponseDto } from './dtos/totals-response.dto';
 import { Payment } from '@prisma/client';
+import { SearchUsersResponseDto } from './dtos/search-users-response.dto';
+import { SearchUsersQueryDto } from './dtos/search-users-query.dto';
 
 @Injectable()
 export class AdminService {
@@ -81,6 +83,20 @@ export class AdminService {
       return { users, hasMore: users.length === limit };
     } catch (error) {
       console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
+
+  async searchUsers(
+    query: SearchUsersQueryDto,
+  ): Promise<{ users: SearchUsersResponseDto[]; hasMore: boolean }> {
+    try {
+      const limit = query.limit ? parseInt(query.limit) : 10;
+      const lastId = query.lastId || null;
+      const search = query.search || query.q || null;
+      return this.adminRepo.searchUsers(limit, lastId, search);
+    } catch (error) {
+      console.error('Error searching users:', error);
       throw error;
     }
   }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PlanName } from '@prisma/client';
+import { PlanName, Prisma } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { TotalsResponseDto } from './dtos/totals-response.dto';
 
@@ -192,6 +192,45 @@ export class AdminRepository {
       },
       take: limit,
     });
+  }
+
+  async searchUsers(
+    limit: number = 10,
+    lastId: string | null = null,
+    search: string | null = null,
+  ) {
+    const safeLimit = Math.min(Math.max(limit || 10, 1), 50);
+    const searchTerm = search?.trim();
+    const where: Prisma.UserWhereInput | undefined = searchTerm
+      ? {
+          OR: [
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+            { firstName: { contains: searchTerm, mode: 'insensitive' } },
+            { lastName: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+        }
+      : undefined;
+
+    const users = await this.db.user.findMany({
+      where,
+      cursor: lastId ? { id: lastId } : undefined,
+      skip: lastId ? 1 : undefined,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        createdAt: true,
+      },
+      take: safeLimit + 1,
+    });
+
+    return {
+      users: users.slice(0, safeLimit),
+      hasMore: users.length > safeLimit,
+    };
   }
 
   async getMonthlyRevenue(year: number): Promise<{ [month: string]: number }> {
