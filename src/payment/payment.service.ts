@@ -175,9 +175,10 @@ export class PaymentService {
       }
 
       if (!user.stripeCustomerId) {
+        await this.paymentRepo.provisionFreeSubscription(user.id);
         return {
-          reconciled: false,
-          message: 'No Stripe customer to reconcile',
+          reconciled: true,
+          message: 'No Stripe customer found. User reconciled to free plan',
         };
       }
 
@@ -186,9 +187,10 @@ export class PaymentService {
           user.stripeCustomerId,
         );
       if (!activeSubscription) {
+        await this.paymentRepo.provisionFreeSubscription(user.id);
         return {
-          reconciled: false,
-          message: 'No active Stripe subscription found',
+          reconciled: true,
+          message: 'No active Stripe subscription found. User reconciled to free plan',
         };
       }
 

@@ -223,6 +223,46 @@ export class PaymentRepository {
     return subscriptions.data[0] ?? null;
   }
 
+  async provisionFreeSubscription(userId: string): Promise<void> {
+    const freePlan = await this.db.plan.findUnique({ where: { name: 'free' } });
+    if (!freePlan) {
+      throw new NotFoundException('Free plan not found');
+    }
+
+    await this.db.$transaction(async (tx) => {
+      await tx.subscription.upsert({
+        where: { userId },
+        update: {
+          plan: { connect: { id: freePlan.id } },
+          status: 'ACTIVE',
+          currentPeriodStart: null,
+          currentPeriodEnd: null,
+          stripeSubscriptionId: null,
+          cancelAtPeriodEnd: false,
+        },
+        create: {
+          user: { connect: { id: userId } },
+          plan: { connect: { id: freePlan.id } },
+          status: 'ACTIVE',
+          currentPeriodStart: null,
+          currentPeriodEnd: null,
+          stripeSubscriptionId: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          aiCreditsThisMonth: 0,
+          aiLastUsedAt: null,
+          resumesThisMonth: 0,
+          resumeLastGeneratedAt: null,
+        },
+      });
+    });
+  }
+
   // Idempotent provisioning shared by the webhook (fast path) and the manual
   // reconcile endpoint (recovery path). Safe to run repeatedly: it re-affirms
   // ACTIVE state and only resets monthly counters when the billing period
