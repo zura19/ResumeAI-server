@@ -1,10 +1,10 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
+import { OptionalJwtGuard } from 'src/common/guards/optional-jwt.guard';
 import type { ApiResponse } from 'src/common/interceptors/response.interface';
 import { ContactRequestDto } from './dto/contact-request.dto';
 import { EmailService } from './email.service';
-import { OptionalJwtGuard } from './guards/optional-jwt.guard';
 
 @Controller('email')
 export class EmailController {
