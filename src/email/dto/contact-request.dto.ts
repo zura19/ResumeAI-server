@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { trimString } from 'src/common/helpers/trim-string.helper';
 import {
   IsEmail,
   IsNotEmpty,
@@ -7,9 +8,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-
-const trimString = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim() : value;
 
 export class ContactRequestDto {
   @Transform(trimString)

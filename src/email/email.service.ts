@@ -6,21 +6,9 @@ import { PlanName } from '@prisma/client';
 import { SubscriptionCanceltemplate } from './templates/subscription-cancel.template';
 import { Resend } from 'resend';
 import type { User } from '@prisma/client';
+import { escapeHtml } from 'src/common/helpers/escape-html.helper';
 import { ContactRequestDto } from './dto/contact-request.dto';
 import { contactRequestTemplate } from './templates/contact-request.template';
-
-const escapeHtml = (value: string): string =>
-  value.replace(
-    /[&<>'"]/g,
-    (character) =>
-      ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;',
-      })[character]!,
-  );
 
 @Injectable()
 export class EmailService {
