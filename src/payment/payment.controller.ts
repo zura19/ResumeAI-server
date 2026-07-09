@@ -15,6 +15,7 @@ import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { CheckoutDto } from './dtos/checkout.dto';
 import { JwtGuard } from 'src/common/guards/jwt.guard';
 import { AdminGuard } from 'src/common/guards/admin.guard';
+import { PaymentStatusResponseDto } from './dtos/payment-status-response.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -54,18 +55,7 @@ export class PaymentController {
   async getPaymentStatus(
     @Param('sessionId') sessionId: string,
     @UserDecorator() user: User,
-  ): Promise<
-    ApiResponse<{
-      status: string;
-      paymentStatus: string | null;
-      total: number | null;
-      currency: string | null;
-      last4: string | null;
-      created: Date | null;
-      email?: string | null;
-      isProcessed: boolean;
-    }>
-  > {
+  ): Promise<ApiResponse<PaymentStatusResponseDto>> {
     const paymentDetails = await this.paymentService.checkPaymentStatus(
       sessionId,
       user,
