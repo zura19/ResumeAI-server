@@ -2,17 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
-import bodyParser from 'body-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: process.env.CLIENT_URL,
     credentials: true,
   });
-
-  app.use('/api/webhooks/stripe', bodyParser.raw({ type: 'application/json' }));
 
   app.use(cookieParser());
 

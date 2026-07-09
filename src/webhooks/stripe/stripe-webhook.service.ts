@@ -4,11 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Plan, PlanName } from '@prisma/client';
+import { Plan, PlanName, StripeSubscriptionStatus } from '@prisma/client';
 import { DbService } from 'src/db/db.service';
 import { EmailService } from 'src/email/email.service';
 import { PaymentRepository } from 'src/payment/payment.repository';
-import { SubscriptionRepository } from 'src/subscription/subcscription.repository';
 import Stripe from 'stripe';
 
 @Injectable()
@@ -17,7 +16,6 @@ export class StripeWebhookService {
 
   constructor(
     private config: ConfigService,
-    private subscriptionRepo: SubscriptionRepository,
     private paymentRepo: PaymentRepository,
     private db: DbService,
     private email: EmailService,
@@ -54,6 +52,12 @@ export class StripeWebhookService {
           event.data.object as Stripe.Subscription,
         );
         break;
+
+      case 'customer.subscription.updated':
+        await this.handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+        );
+        break;
     }
 
     return { received: true };
@@ -77,6 +81,8 @@ export class StripeWebhookService {
       );
 
       const latestInvoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+      const invoiceId = latestInvoice?.id;
+      if (!invoiceId) return;
 
       const user = await this.db.user.findFirst({
         where: { stripeCustomerId },
@@ -84,13 +90,13 @@ export class StripeWebhookService {
       if (!user) throw new NotFoundException('User not found');
 
       await this.db.payment.upsert({
-        where: { stripeSubscriptionId },
+        where: { invoice: invoiceId },
         update: {},
         create: {
           user: {
             connect: { id: user.id },
           },
-          invoice: latestInvoice?.id as string,
+          invoice: invoiceId,
           stripeSubscriptionId,
           currency: (session.currency ?? latestInvoice?.currency) as string,
           status: 'PROCESSING',
@@ -124,21 +130,24 @@ export class StripeWebhookService {
         await this.paymentRepo.provisionPaidSubscription(
           user.id,
           stripeSubscriptionId,
+          invoice,
         ));
     } catch (error) {
       // Provisioning failed. The Stripe payment itself still succeeded, but
       // our local side effects did not, so record it as FAILED for follow-up.
       // Rethrowing returns a 500 so Stripe retries the event; /payment/reconcile
       // is the manual recovery path if retries are exhausted.
+      if (!invoice.id) throw error;
+
       await this.db.payment
         .upsert({
-          where: { stripeSubscriptionId },
-          update: { status: 'FAILED' },
+          where: { invoice: invoice.id },
+          update: { status: 'FAILED', stripeSubscriptionId },
           create: {
             user: {
               connect: { id: user.id },
             },
-            invoice: invoice.id as string,
+            invoice: invoice.id,
             stripeSubscriptionId,
             currency: invoice.currency as string,
             status: 'FAILED',
@@ -157,7 +166,7 @@ export class StripeWebhookService {
     // Email is best-effort: a delivery failure must not change payment status.
     try {
       await this.email.sendPaymentConfirmationEmail(
-        invoice.customer_email as string,
+        invoice.customer_email ?? user.email,
         {
           Plan: plan.name,
           amount: invoice.amount_paid / 100,
@@ -176,6 +185,7 @@ export class StripeWebhookService {
 
       if (!stripeSubscriptionId)
         throw new BadRequestException('No subscription id');
+      if (!invoice.id) throw new BadRequestException('No invoice id');
 
       const stripeCustomerId = invoice.customer as string;
       const user = await this.db.user.findFirst({
@@ -183,22 +193,29 @@ export class StripeWebhookService {
       });
       if (!user) throw new NotFoundException('User not found');
 
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(
+        stripeSubscriptionId,
+        { expand: ['items.data.price'] },
+      );
+
       // Upsert so a failure that arrives before any payment row exists does
-      // not throw; keyed by the unique stripeSubscriptionId.
+      // not throw; keyed by the unique invoice id.
       await this.db.payment.upsert({
-        where: { stripeSubscriptionId },
-        update: { status: 'FAILED' },
+        where: { invoice: invoice.id },
+        update: { status: 'FAILED', stripeSubscriptionId },
         create: {
           user: {
             connect: { id: user.id },
           },
-          invoice: invoice.id as string,
+          invoice: invoice.id,
           stripeSubscriptionId,
           currency: invoice.currency as string,
           status: 'FAILED',
           amount: (invoice.amount_due ?? 0) as number,
         },
       });
+
+      await this.syncLocalSubscriptionFromStripe(user.id, stripeSubscription);
     } catch (error) {
       console.log(error);
       throw error;
@@ -253,4 +270,98 @@ export class StripeWebhookService {
     }
   }
 
+  async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+    try {
+      const stripeCustomerId = subscription.customer as string;
+
+      const user = await this.db.user.findFirst({
+        where: { stripeCustomerId },
+      });
+      if (!user) return;
+
+      await this.syncLocalSubscriptionFromStripe(user.id, subscription);
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  private async syncLocalSubscriptionFromStripe(
+    userId: string,
+    subscription: Stripe.Subscription,
+  ) {
+    const priceId = subscription.items.data[0]?.price.id;
+    if (!priceId) {
+      throw new BadRequestException('No price id on Stripe subscription');
+    }
+
+    const plan = await this.db.plan.findFirst({
+      where: { stripePriceId: priceId },
+    });
+    if (!plan) {
+      throw new NotFoundException(`Plan not found for priceId: ${priceId}`);
+    }
+
+    const { start, end } = this.getCurrentPeriod(subscription);
+
+    await this.db.subscription.update({
+      where: { userId },
+      data: {
+        plan: { connect: { id: plan.id } },
+        status: this.toLocalSubscriptionStatus(subscription.status),
+        stripeSubscriptionId: subscription.id,
+        currentPeriodStart: start,
+        currentPeriodEnd: end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      },
+    });
+  }
+
+  private toLocalSubscriptionStatus(
+    status: Stripe.Subscription.Status,
+  ): StripeSubscriptionStatus {
+    switch (status) {
+      case 'active':
+        return 'ACTIVE';
+      case 'trialing':
+        return 'TRIALING';
+      case 'past_due':
+        return 'PAST_DUE';
+      case 'unpaid':
+        return 'UNPAID';
+      case 'canceled':
+        return 'CANCELED';
+      case 'incomplete':
+      case 'incomplete_expired':
+        return 'INCOMPLETE';
+      case 'paused':
+        return 'UNPAID';
+    }
+  }
+
+  private getCurrentPeriod(subscription: Stripe.Subscription): {
+    start: Date;
+    end: Date;
+  } {
+    const item = subscription.items.data[0] as unknown as {
+      current_period_start?: number;
+      current_period_end?: number;
+    };
+    const root = subscription as unknown as {
+      current_period_start?: number;
+      current_period_end?: number;
+    };
+
+    const start = item?.current_period_start ?? root?.current_period_start;
+    const end = item?.current_period_end ?? root?.current_period_end;
+
+    if (!start || !end) {
+      throw new BadRequestException('No current period on Stripe subscription');
+    }
+
+    return {
+      start: new Date(start * 1000),
+      end: new Date(end * 1000),
+    };
+  }
 }

@@ -31,17 +31,17 @@ export class PaymentRepository {
 
   async createPayment(data: {
     userId: string;
-    stripePaymentIntentId: string;
+    stripeSubscriptionId: string;
+    invoice: string;
     currency: string;
     status: PaymentStatus;
-    planName: string;
     amount: number;
   }) {
-    const payment = await this.db.payment.create({
+    await this.db.payment.create({
       data: {
         userId: data.userId,
-        invoice: data.planName,
-        stripeSubscriptionId: data.stripePaymentIntentId,
+        invoice: data.invoice,
+        stripeSubscriptionId: data.stripeSubscriptionId,
         currency: data.currency,
         status: data.status,
         amount: data.amount,
@@ -168,8 +168,7 @@ export class PaymentRepository {
     if (!stripeCustomerId) {
       const isCanceled =
         !subscriptions ||
-        (subscriptions.plan.name === 'free' &&
-          !subscriptions.currentPeriodEnd);
+        (subscriptions.plan.name === 'free' && !subscriptions.currentPeriodEnd);
       return { isCanceled };
     }
 
@@ -205,9 +204,12 @@ export class PaymentRepository {
   }
 
   async findPaymentByStripeSubscriptionId(id: string) {
-    const payment = await this.db.payment.findUnique({
+    const payment = await this.db.payment.findFirst({
       where: {
         stripeSubscriptionId: id,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
     return payment;
@@ -270,6 +272,7 @@ export class PaymentRepository {
   async provisionPaidSubscription(
     userId: string,
     stripeSubscriptionId: string,
+    paidInvoice?: Stripe.Invoice,
   ): Promise<{ plan: Plan; currentPeriodEnd: Date; amount: number }> {
     const stripeSubscription = await this.stripe.subscriptions.retrieve(
       stripeSubscriptionId,
@@ -288,9 +291,17 @@ export class PaymentRepository {
 
     const latestInvoice =
       stripeSubscription.latest_invoice as Stripe.Invoice | null;
-    const invoiceId = latestInvoice?.id as string;
-    const currency = (latestInvoice?.currency ?? 'usd') as string;
-    const amount = (latestInvoice?.amount_paid ??
+    const invoiceId = paidInvoice?.id ?? latestInvoice?.id;
+    if (!invoiceId) {
+      throw new BadRequestException('No invoice id on paid subscription');
+    }
+
+    const currency = (paidInvoice?.currency ??
+      latestInvoice?.currency ??
+      'usd') as string;
+    const amount = (paidInvoice?.amount_paid ??
+      paidInvoice?.amount_due ??
+      latestInvoice?.amount_paid ??
       latestInvoice?.amount_due ??
       0) as number;
 
@@ -313,8 +324,8 @@ export class PaymentRepository {
       });
 
       await tx.payment.upsert({
-        where: { stripeSubscriptionId },
-        update: { status: 'SUCCEEDED', invoice: invoiceId, currency, amount },
+        where: { invoice: invoiceId },
+        update: { status: 'SUCCEEDED', stripeSubscriptionId, currency, amount },
         create: {
           user: { connect: { id: userId } },
           invoice: invoiceId,
@@ -331,7 +342,7 @@ export class PaymentRepository {
           where: { id: userId },
           data: {
             aiCreditsThisMonth: 0,
-            aiLastUsedAt: new Date(),
+            aiLastUsedAt: null,
             resumesThisMonth: 0,
             resumeLastGeneratedAt: null,
           },
@@ -361,9 +372,13 @@ export class PaymentRepository {
     const start = item?.current_period_start ?? root?.current_period_start;
     const end = item?.current_period_end ?? root?.current_period_end;
 
+    if (!start || !end) {
+      throw new BadRequestException('No current period on Stripe subscription');
+    }
+
     return {
-      start: new Date((start as number) * 1000),
-      end: new Date((end as number) * 1000),
+      start: new Date(start * 1000),
+      end: new Date(end * 1000),
     };
   }
 }

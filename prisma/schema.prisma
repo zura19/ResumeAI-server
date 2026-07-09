@@ -247,8 +247,8 @@ enum StripeSubscriptionStatus {
 
 model Payment {
   id                   String @id @default(cuid())
-  stripeSubscriptionId String @unique
-  invoice              String
+  stripeSubscriptionId String
+  invoice              String @unique
 
   amount   Int
   currency String
@@ -259,6 +259,8 @@ model Payment {
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+
+  @@index([stripeSubscriptionId])
 }
 
 enum PaymentStatus {
