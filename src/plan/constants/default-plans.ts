@@ -9,7 +9,7 @@ export const DEFAULT_PLANS: CreatePlanDto[] = [
     features: [
       'Generate 1 resume',
       'Limited resume templates',
-      '10 AI credits per month',
+      '5 AI credits per month',
       'Basic AI suggestions',
       'Normal-quality PDF export',
     ],
@@ -18,7 +18,7 @@ export const DEFAULT_PLANS: CreatePlanDto[] = [
     additionalFeatures: [
       'Generate up to 1 AI-powered resume',
       'Access to a limited set of professionally designed resume templates',
-      'Receive 10 AI credits every month for content generation and improvements',
+      'Receive 5 AI credits every month for content generation and improvements',
       'Basic AI assistance for summary, experience, and skills sections',
       'Standard resume export (PDF)',
     ],

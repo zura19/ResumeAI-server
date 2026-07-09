@@ -3,28 +3,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DbService } from 'src/db/db.service';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { Plan, PlanName } from '@prisma/client';
 import { DEFAULT_PLANS } from './constants/default-plans';
+import { PlanRepository } from './plan.repository';
 
 @Injectable()
 export class PlanService {
-  constructor(private readonly db: DbService) {}
+  constructor(private readonly planRepo: PlanRepository) {}
 
   async getPlans(): Promise<Partial<Plan>[]> {
     try {
-      const plans = await this.db.plan.findMany({
-        select: {
-          id: true,
-          name: true,
-          priceMonthly: true,
-          recommended: true,
-          description: true,
-          features: true,
-        },
-        orderBy: { priceMonthly: 'asc' },
-      });
+      const plans = await this.planRepo.getPlans();
       return plans;
     } catch (error) {
       console.log(error);
@@ -34,19 +24,12 @@ export class PlanService {
 
   async getPlanByName(name: PlanName, userId: string) {
     try {
-      const plan = await this.db.plan.findUnique({
-        where: { name },
-      });
+      const plan = await this.planRepo.getPlanByName(name);
       if (!plan) {
         throw new NotFoundException(`Plan with name ${name} not found`);
       }
 
-      const userPlan = await this.db.user.findUnique({
-        where: { id: userId },
-        include: {
-          subscription: { select: { plan: { select: { name: true } } } },
-        },
-      });
+      const userPlan = await this.planRepo.getUserPlanByUserId(userId);
 
       if (
         userPlan?.subscription?.plan.name === name &&
@@ -66,21 +49,7 @@ export class PlanService {
 
   async createPlan(body: CreatePlanDto): Promise<Plan> {
     try {
-      const plan = await this.db.plan.create({
-        data: {
-          name: body.name,
-          recommended: body.recommended,
-          description: body.description,
-          features: body.features,
-          detailedDescription: body.detailedDescription,
-          additionalFeatures: body.additionalFeatures,
-          priceMonthly: body.priceMonthly,
-          stripePriceId: body.stripePriceId,
-          stripeProductId: body.stripeProductId,
-          aiCreditsPerMonth: body.aiCreditsPerMonth,
-          totalResumes: body.totalResumes,
-        },
-      });
+      const plan = await this.planRepo.createPlan(body);
       return plan;
     } catch (error) {
       console.log(error);
@@ -91,11 +60,9 @@ export class PlanService {
   async updateDefaultPlans(): Promise<void> {
     try {
       const planNames = DEFAULT_PLANS.map(({ name }) => name);
-      const existingPlans = await this.db.plan.findMany({
-        where: { name: { in: planNames } },
-        select: { name: true },
-      });
-      const existingPlanNames = new Set(existingPlans.map(({ name }) => name));
+      const existingPlanNames = new Set(
+        await this.planRepo.getExistingPlanNames(planNames),
+      );
       const missingPlanNames = planNames.filter(
         (name) => !existingPlanNames.has(name),
       );
@@ -106,14 +73,7 @@ export class PlanService {
         );
       }
 
-      await this.db.$transaction(
-        DEFAULT_PLANS.map(({ name, ...data }) =>
-          this.db.plan.update({
-            where: { name },
-            data,
-          }),
-        ),
-      );
+      await this.planRepo.updateDefaultPlans(DEFAULT_PLANS);
     } catch (error) {
       console.log(error);
       throw error;
@@ -122,30 +82,13 @@ export class PlanService {
 
   async updatePlan(id: string, body: CreatePlanDto): Promise<Plan> {
     try {
-      const planToUpdate = await this.db.plan.findUnique({
-        where: { id },
-      });
+      const planToUpdate = await this.planRepo.getPlanById(id);
 
       if (!planToUpdate) {
         throw new NotFoundException(`Plan with id ${id} not found`);
       }
 
-      const plan = await this.db.plan.update({
-        where: { id },
-        data: {
-          name: body.name,
-          recommended: body.recommended,
-          description: body.description,
-          features: body.features,
-          detailedDescription: body.detailedDescription,
-          additionalFeatures: body.additionalFeatures,
-          priceMonthly: body.priceMonthly,
-          stripePriceId: body.stripePriceId,
-          stripeProductId: body.stripeProductId,
-          aiCreditsPerMonth: body.aiCreditsPerMonth,
-          totalResumes: body.totalResumes,
-        },
-      });
+      const plan = await this.planRepo.updatePlan(id, body);
       return plan;
     } catch (error) {
       console.log(error);

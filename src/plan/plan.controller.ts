@@ -26,6 +26,7 @@ export class PlanController {
     return { data: plan };
   }
 
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   @Post()
   async createPlan(@Body() body: CreatePlanDto): Promise<ApiResponse<Plan>> {
     const plan = await this.planService.createPlan(body);
