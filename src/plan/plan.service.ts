@@ -6,6 +6,7 @@ import {
 import { DbService } from 'src/db/db.service';
 import { CreatePlanDto } from './dtos/create-plan.dto';
 import { Plan, PlanName } from '@prisma/client';
+import { DEFAULT_PLANS } from './constants/default-plans';
 
 @Injectable()
 export class PlanService {
@@ -76,9 +77,43 @@ export class PlanService {
           priceMonthly: body.priceMonthly,
           stripePriceId: body.stripePriceId,
           stripeProductId: body.stripeProductId,
+          aiCreditsPerMonth: body.aiCreditsPerMonth,
+          totalResumes: body.totalResumes,
         },
       });
       return plan;
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async updateDefaultPlans(): Promise<void> {
+    try {
+      const planNames = DEFAULT_PLANS.map(({ name }) => name);
+      const existingPlans = await this.db.plan.findMany({
+        where: { name: { in: planNames } },
+        select: { name: true },
+      });
+      const existingPlanNames = new Set(existingPlans.map(({ name }) => name));
+      const missingPlanNames = planNames.filter(
+        (name) => !existingPlanNames.has(name),
+      );
+
+      if (missingPlanNames.length > 0) {
+        throw new NotFoundException(
+          `Plans with names ${missingPlanNames.join(', ')} not found`,
+        );
+      }
+
+      await this.db.$transaction(
+        DEFAULT_PLANS.map(({ name, ...data }) =>
+          this.db.plan.update({
+            where: { name },
+            data,
+          }),
+        ),
+      );
     } catch (error) {
       console.log(error);
       throw error;
