@@ -8,7 +8,11 @@ export class CreatePaymentDto {
 
   @IsString()
   @IsNotEmpty()
-  stripePaymentIntentId: string;
+  stripeSubscriptionId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  invoice: string;
 
   @IsString()
   @IsNotEmpty()

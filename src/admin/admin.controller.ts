@@ -5,6 +5,8 @@ import { JwtGuard } from 'src/common/guards/jwt.guard';
 import { AdminGuard } from 'src/common/guards/admin.guard';
 import { TotalsResponseDto } from './dtos/totals-response.dto';
 import { Payment } from '@prisma/client';
+import { SearchUsersResponseDto } from './dtos/search-users-response.dto';
+import { SearchUsersQueryDto } from './dtos/search-users-query.dto';
 
 @UseGuards(JwtGuard, AdminGuard)
 @Controller('admin')
@@ -63,6 +65,23 @@ export class AdminController {
       };
     } catch (error) {
       console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
+
+  @Get('/search-users')
+  async searchUsers(
+    @Query() query: SearchUsersQueryDto,
+  ): Promise<
+    ApiResponse<{ users: SearchUsersResponseDto[]; hasMore: boolean }>
+  > {
+    try {
+      const users = await this.adminService.searchUsers(query);
+      return {
+        data: users,
+      };
+    } catch (error) {
+      console.error('Error searching users:', error);
       throw error;
     }
   }

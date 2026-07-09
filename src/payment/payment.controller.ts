@@ -9,10 +9,13 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
-import type { Payment, Plan, User } from '@prisma/client';
+import type { Payment, User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { CheckoutDto } from './dtos/checkout.dto';
+import { JwtGuard } from 'src/common/guards/jwt.guard';
+import { AdminGuard } from 'src/common/guards/admin.guard';
+import { PaymentStatusResponseDto } from './dtos/payment-status-response.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -52,17 +55,7 @@ export class PaymentController {
   async getPaymentStatus(
     @Param('sessionId') sessionId: string,
     @UserDecorator() user: User,
-  ): Promise<
-    ApiResponse<{
-      status: string;
-      total: number | null;
-      currency: string | null;
-      last4: string | null;
-      created: Date | null;
-      email?: string | null;
-      isProcessed: boolean;
-    }>
-  > {
+  ): Promise<ApiResponse<PaymentStatusResponseDto>> {
     const paymentDetails = await this.paymentService.checkPaymentStatus(
       sessionId,
       user,
@@ -70,14 +63,23 @@ export class PaymentController {
     return { data: paymentDetails };
   }
 
+  @UseGuards(JwtGuard, AdminGuard)
+  @Post('/reconcile/:userId')
+  async reconcileSubscription(
+    @Param('userId') userId: string,
+  ): Promise<ApiResponse<{ reconciled: boolean; message: string }>> {
+    const result = await this.paymentService.reconcileSubscription(userId);
+    return { data: result, message: result.message };
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('/cancel/status')
   async getCancelStatus(
     @UserDecorator() user: User,
-  ): Promise<ApiResponse<{ allowCancel: boolean; user: User }>> {
+  ): Promise<ApiResponse<{ isCanceled: boolean; user: User }>> {
     const data = await this.paymentService.checkCancelStatus(
       user.id,
-      user.stripeCustomerId as string,
+      user.stripeCustomerId,
     );
     return { data: { ...data, user } };
   }
