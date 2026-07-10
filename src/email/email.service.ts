@@ -42,9 +42,9 @@ export class EmailService {
     request: ContactRequestDto,
     user: User | null,
   ): Promise<void> {
-    const from = this.configService.get<string>('FROM_EMAIL_ADDRESS');
+    const from = this.configService.get<string>('CONTACT_EMAIL_ADDRESS');
     const supportInbox =
-      this.configService.get<string>('CONTACT_EMAIL_ADDRESS') ?? from;
+      this.configService.get<string>('SUPPORT_EMAIL_ADDRESS') ?? from;
 
     if (!from || !supportInbox) {
       throw new InternalServerErrorException('Contact email is not configured');
