@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Welcometemplate } from './templates/welcome.template';
 import { planUpgradeTemplate } from './templates/plan-upgrade.template';
 import { PlanName } from '@prisma/client';
 import { SubscriptionCanceltemplate } from './templates/subscription-cancel.template';
 import { Resend } from 'resend';
+import type { User } from '@prisma/client';
+import { escapeHtml } from 'src/common/helpers/escape-html.helper';
+import { ContactRequestDto } from './dto/contact-request.dto';
+import { contactRequestTemplate } from './templates/contact-request.template';
 
 @Injectable()
 export class EmailService {
@@ -17,7 +21,7 @@ export class EmailService {
   async sendEmail(to: string, subject: string, html: string) {
     try {
       const response = await this.resend.emails.send({
-        from: this.configService.get<string>('FROM_EMAIL_ADDRESS')!,
+        from: this.configService.get<string>('CONTACT_EMAIL_ADDRESS')!,
         to,
         subject,
         html,
@@ -31,6 +35,42 @@ export class EmailService {
     } catch (error) {
       console.error('Resend error:', error);
       throw error;
+    }
+  }
+
+  async sendContactRequest(
+    request: ContactRequestDto,
+    user: User | null,
+  ): Promise<void> {
+    const from = this.configService.get<string>('FROM_EMAIL_ADDRESS');
+    const supportInbox =
+      this.configService.get<string>('CONTACT_EMAIL_ADDRESS') ?? from;
+
+    if (!from || !supportInbox) {
+      throw new InternalServerErrorException('Contact email is not configured');
+    }
+
+    const replyTo = user?.email ?? request.email;
+    const sendTemplate = contactRequestTemplate
+      .replaceAll('{{REPLY_TO}}', escapeHtml(replyTo))
+      .replaceAll('{{USER_ID}}', escapeHtml(user?.id ?? 'Guest'))
+      .replaceAll('{{TITLE}}', escapeHtml(request.title))
+      .replaceAll(
+        '{{DESCRIPTION}}',
+        escapeHtml(request.description).replace(/\r?\n/g, '<br />'),
+      );
+
+    const response = await this.resend.emails.send({
+      from,
+      to: supportInbox,
+      replyTo,
+      subject: `Contact request: ${request.title}`,
+      html: sendTemplate,
+    });
+
+    if (response.error) {
+      console.error('Resend error:', response.error);
+      throw response.error;
     }
   }
 
