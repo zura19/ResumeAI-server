@@ -7,12 +7,14 @@ import { type User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { ProfileResponseDto } from './dtos/profile-response.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { AdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('user')
 export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   async getAllUser(): Promise<
     ApiResponse<{ users: UserWithoutPassword[] | [] }>
   > {
@@ -22,6 +24,7 @@ export class UserController {
   }
 
   @Get('id/:id')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   async getUser(
     @Param('id') id: string,
   ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {

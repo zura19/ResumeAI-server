@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { DbModule } from './db/db.module';
 import { ResumeModule } from './resume/resume.module';
 import { AiModule } from './ai/ai.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { ResponseInterceptor } from './common/interceptors/resonse.interceptor';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { PlanModule } from './plan/plan.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { PaymentModule } from './payment/payment.module';
@@ -16,12 +17,26 @@ import { StripeWebhookModule } from './webhooks/stripe/stripe-webhook.module';
 import { AdminModule } from './admin/admin.module';
 import { EmailModule } from './email/email.module';
 import { ChatModule } from './chat/chat.module';
+import { minutes, seconds, ThrottlerModule } from '@nestjs/throttler';
+import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: '.env',
       isGlobal: true,
+    }),
+    JwtModule.register({}),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'default',
+          ttl: minutes(1),
+          limit: 20,
+          blockDuration: seconds(30),
+        },
+      ],
+      errorMessage: 'Too many requests, please try again later.',
     }),
     DbModule,
     ResumeModule,
@@ -39,6 +54,10 @@ import { ChatModule } from './chat/chat.module';
   controllers: [AppController],
   providers: [
     AppService,
+    {
+      provide: APP_GUARD,
+      useClass: UserThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,

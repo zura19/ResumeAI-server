@@ -5,11 +5,13 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { RawBodyRequest } from '@nestjs/common';
 import { StripeWebhookService } from './stripe-webhook.service';
 import type { Request } from 'express';
 
 @Controller('webhooks/stripe')
+@SkipThrottle()
 export class StripeWebhookController {
   constructor(private readonly stripeWebhookService: StripeWebhookService) {}
 
