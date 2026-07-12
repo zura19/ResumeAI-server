@@ -34,7 +34,7 @@ import {
         {
           name: 'default',
           ttl: minutes(1),
-          limit: 50,
+          limit: 20,
           blockDuration: seconds(30),
         },
       ],
