@@ -1,5 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { hours, Throttle } from '@nestjs/throttler';
+import { hours, minutes, Throttle } from '@nestjs/throttler';
 import type { User } from '@prisma/client';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { OptionalJwtGuard } from 'src/common/guards/optional-jwt.guard';
@@ -13,7 +13,9 @@ export class EmailController {
 
   @Post('contact')
   @UseGuards(OptionalJwtGuard)
-  @Throttle({ default: { limit: 3, ttl: hours(1), blockDuration: hours(1) } })
+  @Throttle({
+    default: { limit: 3, ttl: hours(1), blockDuration: minutes(10) },
+  })
   async contact(
     @Body() body: ContactRequestDto,
     @UserDecorator() user: User | null,

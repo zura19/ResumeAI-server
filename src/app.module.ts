@@ -16,7 +16,12 @@ import { StripeWebhookModule } from './webhooks/stripe/stripe-webhook.module';
 import { AdminModule } from './admin/admin.module';
 import { EmailModule } from './email/email.module';
 import { ChatModule } from './chat/chat.module';
-import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import {
+  minutes,
+  seconds,
+  ThrottlerGuard,
+  ThrottlerModule,
+} from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -29,8 +34,8 @@ import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
         {
           name: 'default',
           ttl: minutes(1),
-          limit: 120,
-          blockDuration: minutes(1),
+          limit: 50,
+          blockDuration: seconds(30),
         },
       ],
       errorMessage: 'Too many requests, please try again later.',

@@ -8,7 +8,7 @@ export class AiController {
 
   @Post()
   @Throttle({
-    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(1) },
   })
   async sendMessage(@Body() body: { message: string }) {
     const data = await this.aiService.sendMessage(body);

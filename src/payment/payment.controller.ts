@@ -7,7 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { minutes, Throttle } from '@nestjs/throttler';
+import { minutes, seconds, Throttle } from '@nestjs/throttler';
 import { PaymentService } from './payment.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import type { Payment, User } from '@prisma/client';
@@ -35,7 +35,7 @@ export class PaymentController {
   @UseGuards(AuthGuard('jwt'))
   @Post('/checkout')
   @Throttle({
-    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 5, ttl: minutes(1), blockDuration: seconds(30) },
   })
   async createPaymentIntent(
     @UserDecorator() user: User,
@@ -48,7 +48,7 @@ export class PaymentController {
   @UseGuards(AuthGuard('jwt'))
   @Post('/cancel')
   @Throttle({
-    default: { limit: 3, ttl: minutes(5), blockDuration: minutes(10) },
+    default: { limit: 3, ttl: minutes(5), blockDuration: seconds(30) },
   })
   async cancelSubscription(
     @UserDecorator() user: User,
@@ -60,7 +60,7 @@ export class PaymentController {
   @UseGuards(AuthGuard('jwt'))
   @Get('/status/:sessionId')
   @Throttle({
-    default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+    default: { limit: 30, ttl: minutes(1), blockDuration: seconds(30) },
   })
   async getPaymentStatus(
     @Param('sessionId') sessionId: string,
@@ -76,7 +76,7 @@ export class PaymentController {
   @UseGuards(JwtGuard, AdminGuard)
   @Post('/reconcile/:userId')
   @Throttle({
-    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 5, ttl: minutes(1), blockDuration: seconds(30) },
   })
   async reconcileSubscription(
     @Param('userId') userId: string,

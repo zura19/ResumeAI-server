@@ -15,7 +15,7 @@ import { LoginDto } from './dtos/login.dto';
 import { type Request, type Response } from 'express';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { hours, minutes, Throttle } from '@nestjs/throttler';
+import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
@@ -23,7 +23,7 @@ export class AuthController {
 
   @Post('login')
   @Throttle({
-    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 5, ttl: minutes(1) },
   })
   async login(
     @Body() body: LoginDto,
@@ -34,7 +34,9 @@ export class AuthController {
   }
 
   @Post('register')
-  @Throttle({ default: { limit: 3, ttl: hours(1), blockDuration: hours(1) } })
+  @Throttle({
+    default: { limit: 3, ttl: hours(1), blockDuration: minutes(10) },
+  })
   async register(
     @Body() body: RegisterDto,
   ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
@@ -44,7 +46,7 @@ export class AuthController {
 
   @Get('google')
   @Throttle({
-    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 10, ttl: minutes(1) },
   })
   @UseGuards(AuthGuard('google'))
   async googleAuth(@Req() req) {
@@ -53,7 +55,7 @@ export class AuthController {
 
   @Get('google/callback')
   @Throttle({
-    default: { limit: 20, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 20, ttl: minutes(1) },
   })
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
@@ -72,7 +74,7 @@ export class AuthController {
 
   @Post('refresh')
   @Throttle({
-    default: { limit: 20, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 20, ttl: minutes(1) },
   })
   async refresh(
     @Req() req: Request,

@@ -8,7 +8,7 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { minutes, Throttle } from '@nestjs/throttler';
+import { minutes, seconds, Throttle } from '@nestjs/throttler';
 import { SubscriptionService } from './subscription.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
@@ -19,14 +19,14 @@ import { ApiResponse } from 'src/common/interceptors/response.interface';
 
 @Controller('subscription')
 @Throttle({
-  default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+  default: { limit: 30, ttl: minutes(1), blockDuration: seconds(30) },
 })
 export class SubscriptionController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
   @Post()
   @Throttle({
-    default: { limit: 5, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 5, ttl: minutes(1), blockDuration: seconds(30) },
   })
   create(@Body() createSubscriptionDto: CreateSubscriptionDto) {
     return this.subscriptionService.create(createSubscriptionDto);
@@ -58,7 +58,7 @@ export class SubscriptionController {
 
   @Patch(':id')
   @Throttle({
-    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 10, ttl: minutes(1), blockDuration: seconds(30) },
   })
   update(
     @Param('id') id: string,
@@ -69,7 +69,7 @@ export class SubscriptionController {
 
   @Delete(':id')
   @Throttle({
-    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 10, ttl: minutes(1), blockDuration: seconds(30) },
   })
   remove(@Param('id') id: string) {
     return this.subscriptionService.remove(+id);

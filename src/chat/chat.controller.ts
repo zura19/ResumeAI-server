@@ -26,7 +26,7 @@ export class ChatController {
   @UseGuards(JwtGuard, ProGuard, CanUseAiGuard)
   @Post('/:resumeId')
   @Throttle({
-    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(1) },
   })
   async sendMessage(
     @Param('resumeId') resumeId: string,
