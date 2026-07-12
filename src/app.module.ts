@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { DbModule } from './db/db.module';
 import { ResumeModule } from './resume/resume.module';
 import { AiModule } from './ai/ai.module';
@@ -16,12 +17,8 @@ import { StripeWebhookModule } from './webhooks/stripe/stripe-webhook.module';
 import { AdminModule } from './admin/admin.module';
 import { EmailModule } from './email/email.module';
 import { ChatModule } from './chat/chat.module';
-import {
-  minutes,
-  seconds,
-  ThrottlerGuard,
-  ThrottlerModule,
-} from '@nestjs/throttler';
+import { minutes, seconds, ThrottlerModule } from '@nestjs/throttler';
+import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
 
 @Module({
   imports: [
@@ -29,6 +26,7 @@ import {
       envFilePath: '.env',
       isGlobal: true,
     }),
+    JwtModule.register({}),
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -58,7 +56,7 @@ import {
     AppService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: UserThrottlerGuard,
     },
     {
       provide: APP_INTERCEPTOR,

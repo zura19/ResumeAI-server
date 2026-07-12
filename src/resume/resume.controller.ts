@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
+import { hours, minutes, Throttle } from '@nestjs/throttler';
 import { ResumeService } from './resume.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto';

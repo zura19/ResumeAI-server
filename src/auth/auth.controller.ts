@@ -15,7 +15,7 @@ import { LoginDto } from './dtos/login.dto';
 import { type Request, type Response } from 'express';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
+import { hours, minutes, Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {

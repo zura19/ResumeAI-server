@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
-import { minutes, seconds, Throttle } from '@nestjs/throttler';
 import { UserService } from './user.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
