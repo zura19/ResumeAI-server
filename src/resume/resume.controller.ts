@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { minutes, Throttle } from '@nestjs/throttler';
 import { ResumeService } from './resume.service';
 import { CreateResumeDto } from './dto/resume.dto';
 import { GeneratedResumeDto } from './dto/generated-resume/generated-resume.dto';
@@ -29,6 +30,9 @@ export class ResumeController {
 
   @UseGuards(AuthGuard('jwt'), CanGenerateAiGuard)
   @Post()
+  @Throttle({
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async create(
     @Body() body: CreateResumeDto,
     @UserDecorator() user: User,
@@ -40,6 +44,9 @@ export class ResumeController {
 
   @UseGuards(AuthGuard('jwt'), CanGenerateAiGuard)
   @Post('duplicate/:resumeId/:generatedId')
+  @Throttle({
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async duplicate(
     @Param('resumeId') resumeId: string,
     @Param('generatedId') generatedId: string,
@@ -121,6 +128,9 @@ export class ResumeController {
 
   @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('summary/:id')
+  @Throttle({
+    default: { limit: 6, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async generateSummary(
     @Param('id') id: string,
     @Body() body: GeneratedResumeDto,
@@ -141,6 +151,9 @@ export class ResumeController {
 
   @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('generate/feature')
+  @Throttle({
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async generateFeature(
     @Body() body: GenerateFeautureDto,
     @UserDecorator() user: User,
@@ -150,6 +163,9 @@ export class ResumeController {
 
   @UseGuards(AuthGuard('jwt'), CanUseAiGuard)
   @Post('generate/responsibilitie')
+  @Throttle({
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async generateResponsibilitie(
     @Body() body: GenerateResponsibilitieDto,
     @UserDecorator() user: User,
@@ -158,6 +174,9 @@ export class ResumeController {
   }
 
   @Get('/build/unis')
+  @Throttle({
+    default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+  })
   async getUniversities(
     @Query() query: getUniversitiesQueryDto,
   ): Promise<ApiResponse<{ universities: any }>> {

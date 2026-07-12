@@ -1,4 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { minutes, Throttle } from '@nestjs/throttler';
 import { AdminService } from './admin.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { JwtGuard } from 'src/common/guards/jwt.guard';
@@ -9,6 +10,9 @@ import { SearchUsersResponseDto } from './dtos/search-users-response.dto';
 import { SearchUsersQueryDto } from './dtos/search-users-query.dto';
 
 @UseGuards(JwtGuard, AdminGuard)
+@Throttle({
+  default: { limit: 60, ttl: minutes(1), blockDuration: minutes(2) },
+})
 @Controller('admin')
 export class AdminController {
   constructor(private adminService: AdminService) {}
@@ -70,6 +74,9 @@ export class AdminController {
   }
 
   @Get('/search-users')
+  @Throttle({
+    default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+  })
   async searchUsers(
     @Query() query: SearchUsersQueryDto,
   ): Promise<

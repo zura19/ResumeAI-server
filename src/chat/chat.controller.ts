@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { minutes, Throttle } from '@nestjs/throttler';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtGuard } from 'src/common/guards/jwt.guard';
 import { UserDecorator } from 'src/common/decorators/user.decorator';
@@ -24,6 +25,9 @@ export class ChatController {
 
   @UseGuards(JwtGuard, ProGuard, CanUseAiGuard)
   @Post('/:resumeId')
+  @Throttle({
+    default: { limit: 10, ttl: minutes(1), blockDuration: minutes(5) },
+  })
   async sendMessage(
     @Param('resumeId') resumeId: string,
     @Body() body: SendMessageDto,

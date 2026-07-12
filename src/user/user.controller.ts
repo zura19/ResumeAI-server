@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { minutes, Throttle } from '@nestjs/throttler';
 import { UserService } from './user.service';
 import { ApiResponse } from 'src/common/interceptors/response.interface';
 import { UserWithoutPassword } from 'src/common/interfaces/user-without-password.interface';
@@ -13,6 +14,9 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
+  @Throttle({
+    default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+  })
   async getAllUser(): Promise<
     ApiResponse<{ users: UserWithoutPassword[] | [] }>
   > {
@@ -22,6 +26,9 @@ export class UserController {
   }
 
   @Get('id/:id')
+  @Throttle({
+    default: { limit: 30, ttl: minutes(1), blockDuration: minutes(2) },
+  })
   async getUser(
     @Param('id') id: string,
   ): Promise<ApiResponse<{ user: UserWithoutPassword }>> {
