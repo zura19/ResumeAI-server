@@ -16,6 +16,7 @@ RUN apt-get update -y && apt-get install -y python3 make g++ && rm -rf /var/lib/
 # -------------------------------------------------------------------
 FROM build-tools AS builder
 WORKDIR /app
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm install
