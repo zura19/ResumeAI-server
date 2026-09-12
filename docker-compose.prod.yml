@@ -1,0 +1,14 @@
+services:
+  resumeai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resumeai-server
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.prod
+    environment:
+      - NODE_ENV=prod
+      - PORT=3000
