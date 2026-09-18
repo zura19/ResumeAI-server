@@ -11,6 +11,7 @@ export type GeneratedResumeWithDetails = Prisma.GeneratedResumeGetPayload<{
     education: true;
     experiences: true;
     projects: true;
+    links: true;
   };
 }>;
 
@@ -50,6 +51,14 @@ export class ResumeRepository {
           title: project.title,
           technologies: project.technologies,
           features: project.features,
+          url: project.url,
+          order,
+        })),
+      },
+      links: {
+        create: (data.links ?? []).map((link, order) => ({
+          url: link.url,
+          type: link.type,
           order,
         })),
       },
@@ -103,6 +112,7 @@ export class ResumeRepository {
             education: { orderBy: { order: 'asc' } },
             experiences: { orderBy: { order: 'asc' } },
             projects: { orderBy: { order: 'asc' } },
+            links: { orderBy: { order: 'asc' } },
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -175,7 +185,15 @@ export class ResumeRepository {
                   title: project.title,
                   technologies: project.technologies,
                   features: project.features,
+                  url: project.url,
                   order: project.order,
+                })),
+              },
+              links: {
+                create: ((generatedResume as any).links ?? []).map((link: any) => ({
+                  url: link.url,
+                  type: link.type,
+                  order: link.order,
                 })),
               },
             },

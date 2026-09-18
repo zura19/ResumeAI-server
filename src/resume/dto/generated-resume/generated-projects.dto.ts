@@ -1,4 +1,10 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+} from 'class-validator';
 
 export class GeneratedProjectDto {
   @IsString()
@@ -18,4 +24,9 @@ export class GeneratedProjectDto {
   @IsString({ each: true })
   @IsOptional({ each: true })
   technologies: string[];
+
+  @IsOptional()
+  @IsString()
+  @IsUrl()
+  url?: string;
 }
