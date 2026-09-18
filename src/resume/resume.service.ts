@@ -395,7 +395,9 @@ export class ResumeService {
     generatedResume: GeneratedResumeWithDetails,
   ): GeneratedResumeDto {
     if (!generatedResume.personalInfo || !generatedResume.skills) {
-      throw new BadRequestException('Generated resume is missing required details.');
+      throw new BadRequestException(
+        'Generated resume is missing required details.',
+      );
     }
 
     return {
@@ -421,6 +423,11 @@ export class ResumeService {
         title: project.title,
         technologies: project.technologies,
         features: project.features,
+        url: project.url ?? '',
+      })),
+      links: ((generatedResume as any).links ?? []).map((link: any) => ({
+        url: link.url,
+        type: link.type,
       })),
     };
   }

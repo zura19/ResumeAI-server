@@ -11,6 +11,7 @@ import { EducationModule } from './education/education.module';
 import { ExperienceModule } from './experience/experience.module';
 import { PersonalInfoModule } from './personal-info/personal-info.module';
 import { ProjectModule } from './project/project.module';
+import { LinkModule } from './link/link.module';
 import { SkillsModule } from './skills/skills.module';
 import { SummaryModule } from './summary/summary.module';
 
@@ -24,6 +25,7 @@ import { SummaryModule } from './summary/summary.module';
     EducationModule,
     ExperienceModule,
     ProjectModule,
+    LinkModule,
   ],
   controllers: [ResumeController],
   providers: [

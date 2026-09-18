@@ -70,6 +70,7 @@ model GeneratedResume {
   education    Education[]
   experiences  Experience[]
   projects     Project[]
+  links        Link[]
 
   resumeId String
   resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
@@ -149,6 +150,7 @@ model Project {
   title        String
   technologies String[]
   features     String[]
+  url          String?
   order        Int      @default(0)
 
   generatedResumeId String
@@ -158,6 +160,32 @@ model Project {
   createdAt DateTime @default(now())
 
   @@index([generatedResumeId, order])
+}
+
+model Link {
+  id    String   @id @default(cuid())
+  url   String
+  type  LinkType @default(other)
+  order Int      @default(0)
+
+  generatedResumeId String
+  generatedResume   GeneratedResume @relation(fields: [generatedResumeId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([generatedResumeId, order])
+}
+
+enum LinkType {
+  facebook
+  github
+  portfolio
+  linkedin
+  twitter
+  website
+  instagram
+  other
 }
 
 enum ResumeType {
